@@ -16,7 +16,6 @@ while getopts ":hg:" opts; do
             ;;
         ":")
             echo "No argument value for option $opts"
-	    
             ;;
         esac
 done
