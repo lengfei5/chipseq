@@ -6,7 +6,7 @@ while getopts ":hg:p" opts; do
         "h") 
 	    echo "script to map fastq or fq to the genome using bowite2"
 	    echo "Usage: $0 -g ce11 (single_end)"
-	    echo "$0 -g cell -p (paired_end) "
+	    echo "$0 -g ce11 -p (paired_end) "
 	    exit 0
 	    ;;
 	"g")
@@ -62,7 +62,7 @@ esac
 DIR_input="${PWD}/ngs_raw/FASTQs"
 DIR_output="${PWD}/alignments/BAMs_All"
 
-nb_cores=8
+nb_cores=12
 
 mkdir -p $DIR_output
 mkdir -p $PWD/logs
@@ -76,7 +76,7 @@ if [ "$PAIRED" != "TRUE" ]; then
         #echo $fname
 	fname=${fname%.fastq}
 	echo $fname
-	qsub -q public.q -o ${PWD}/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N bowtie2Map "module load samtools/0.1.18;module load bowtie2/2.2.4;bowtie2 -q -p $nb_cores -x $Genome -U $file | samtools view -bSu - | samtools sort - ${DIR_output}/$fname; samtools index ${DIR_output}/$fname.bam;" 
+	qsub -q public.q -o ${PWD}/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N bowtie2Map "module load samtools/0.1.18; module load bowtie2/2.2.4;bowtie2 -q -p $nb_cores -x $Genome -U $file | samtools view -bSu - | samtools sort - ${DIR_output}/$fname; samtools index ${DIR_output}/$fname.bam;" 
     done
 else
     echo "paired_end fastq ..."
