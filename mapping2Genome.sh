@@ -62,7 +62,7 @@ esac
 DIR_input="${PWD}/ngs_raw/FASTQs"
 DIR_output="${PWD}/alignments/BAMs_All"
 
-nb_cores=12
+nb_cores=8
 
 mkdir -p $DIR_output
 mkdir -p $PWD/logs
