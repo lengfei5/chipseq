@@ -3,108 +3,147 @@
 # using MACS2 (sharp or broad peaks), Sicer (broad peaks) 
 # it is quite tricky to specify Input files if bam files need different Input
 #####################
-DIR_Bam="$PWD/alignments/BAMs_All"
-OUT=$PWD/Peaks
+while getopts ":hD:I:mbSg:" opts; do
+    case "$opts" in
+        "h")
+            echo "script to do peak calling using macs2 with sharp and broad optioins"
+            echo "and sicer for broad peaks"
+	    echo "no input files needed by defaut and use option -I to specify the one common input file"
+            echo "Usage:"
+            echo "$0 -m -g mm10 (if bam files in alignments/BAMs_All for chipseq)"
+            echo "$0 -D XXX -m -g mm10 (bam files in XXX directory) "
+            echo "$0 -S -g mm10  "
+            exit 0
+            ;;
+        "D")
+            DIR_Bams="$OPTARG";
+            ;;
+        "I")
+            INPUT="$OPTARG";
+            ;;
+	"m")
+	    MACS2="TRUE"
+	    ;;
+	"b")
+	    MACS2_broad="TRUE"
+	    ;;
+	"S")
+	    SICER="TRUE"
+	    ;;
+	"g")
+	    genome="$OPTARG";
+	    ;;
+        "?")
+            echo "Unknown option $opts"
+            ;;
+        ":")
+            echo "No argument value for option -D "
+            exit 1;
+            ;;
+    esac
+done
 
-# input file if exist
+OUT=$PWD/Peaks
+nb_cores=6;
+cwd=`pwd`;
+
+if [ -z "$DIR_Bams" ]; then
+    DIR_Bam="$PWD/alignments/BAMs_All"
+fi
+
+# input file 
 #INPUT="/groups/bell/jiwang/Projects/Jorge/INPUT/merged_Input_49475_49911_49908.bam"
 
-nb_cores=6;
-chromSize="/groups/bell/jiwang/Genomes/Mouse/mm10_UCSC/Sequence/mm10_chrom_sizes.sizes"
-species_macs="hs";
+if [ "$genome" == "mm10" ]; then
+    species_macs="mm";
+    species_sicer="mm10";
+    chromSize="/groups/bell/jiwang/Genomes/Mouse/mm10_UCSC/Sequence/mm10_chrom_sizes.sizes"
+fi
 
-species_sicer="mm10";
-pval=0.00001;
-fdr=0.01;
+if [ "$genome" == "hg19" ]; then
+    species_macs="hs"; species_sicer="hg19";
+fi
+
+if [ "$genome" == "ce11" ]; then
+    species_macs="ce"; species_sicer="ce11";
+fi
+
+pval=0.00001; # for macs sharp
+fdr=0.05; # for macs broad and sicer
+# paras for sicer
 window_sizes="200 500 1000";
 redundancy_threshold=1;
 fragment_size=140;
 eff_genome_fraction=0.8;
 gap_size=
 
-cwd=`pwd`;
-
 mkdir -p $cwd/logs
-mkdir -p $OUT/macs2
 
-#mkdir -p $OUT/macs2_broad
-#mkdir -p $OUT/peakranger
-#mkdir -p $OUT/sicer
+if [ "$MACS2" == "TRUE" ]; then mkdir -p $OUT/macs2; fi;
+if [ "$MACS2_broad" == "TRUE" ]; then mkdir -p $OUT/macs2_broad; fi
+if [ "$SICER" == "TRUE" ]; then mkdir -p $OUT/sicer; fi
 
-for sample in ${DIR_Bam}/*.bam; do
-    # skip the header
-    #if [ "$CONDITION" = "CONDITION" ]; then
-    #echo "Header ..."
-    #elif [ ! -z "$INPUT" ]; then 
-    #sample=`ls -l ${DIR_Bam}/*.bam | grep $ID |awk '{print $9}'`
-	#sample=${DIR_Bam}/${CONDITION}_${ID}.bam
-	#echo $sample $INPUT
-	
-	#IFS=; read -a inputs <<< "$INPUT"
-	#inputs=$(echo $INPUT | tr ";" " ")
-	#inputs=(${INPUT//;/})
-	#echo $sample $INPUT
-	#input=`ls -l ${DIR_Bam}/*.bam | grep $INPUT |awk '{print $9}'`
-    #echo $sample $INPUT
-    
+for sample in ${DIR_Bams}/*.bam; do
     samplename=`basename "$sample"`
     out=${samplename%.bam}
-    echo $out
+    echo $sample  $out
     #inputname=`basename "$input"`
     #outname=${CONDITION}_${ID}_${INPUT} 
     #echo $outname
         
-    ## MACS2
-    cd $OUT/macs2
-    #echo "peak calling with macs2"
-    if [ -n "$INPUT" ]; then  
-    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 -B --call-summits" 
-    else
-    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 -B --call-summits" 
+    # MACS2
+    if [ "$MACS2" == "TRUE" ]; then
+	cd $OUT/macs2
+        #echo "peak calling with macs2"
+	if [ -n "$INPUT" ]; then  
+	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 -B --call-summits" 
+	else
+	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 -extsize 200 -B --call-summits" 
+	fi
+	cd $cwd
     fi
-    cd $cwd
-    #break;
-	
-	## MACS2 broad_peaks
+    
+    # MACS2 broad_peaks
+    if [ "$MACS2_broad" == "TRUE" ]; then
 	#cd $OUT/macs2_broad
-	#qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -c $input -n ${outname}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs -q $fdr --broad --fix-bimodal -m 5 100 -B " 
+	if [ -n "$INPUT" ]; then
+	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPU -n ${outname}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs -q $fdr --broad --fix-bimodal -m 5 100 -B "
+	else
+	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -n ${outname}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs -q $fdr --broad --fix-bimodal -m 5 100 -B "
+	fi
 	#cd $cwd
-	
-        ## peakranger
-	#cd $OUT/peakranger
-        #qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N peakranger "module load peakranger; peakranger ccat --format bam $sample $input ccat_$outname "
-	#cd $cwd
-	
-        ## sicer
-	#cd $OUT/sicer;
-	#bedsample=${CONDITION}_${ID};
-	#bedinput="INPUT"_${INPUT};
-	#echo $bedsample $bedinput;
-	#data=$OUT/sicer;
+    fi
+        
+       
+    # SICER 
+    if [ "$SICER" == "TRUE" ]; then
+	cd $OUT/sicer;
+	bedsample=${CONDITION}_${ID};
+	bedinput="INPUT"_${INPUT};
+	echo $bedsample $bedinput;
+	data=$OUT/sicer;
 	
 	#module load bedtools; 
-	#if [ ! -e ${bedsample}.bed ]; then bamToBed -i $sample > ${bedsample}.bed; fi; 
-	#if [ ! -e ${bedinput}.bed ]; then bamToBed -i $input > ${bedinput}.bed; fi;
+	if [ ! -e ${bedsample}.bed ]; then bamToBed -i $sample > ${bedsample}.bed; fi; 
+	if [ ! -e ${bedinput}.bed ]; then bamToBed -i $input > ${bedinput}.bed; fi;
 	
-	#for window_size in $window_sizes
-	#do
-	 #   gap_size=$(expr $window_size \* 3);
-	  #  odir=${data}/${bedsample}/${window_size};
+	for window_size in $window_sizes
+	do
+	    gap_size=$(expr $window_size \* 3);
+	    odir=${data}/${bedsample}/${window_size};
 	    
-	   # echo $gap_size 
-	    #echo $odir;
-	    #mkdir -p $odir; 
-	    #cd $odir;
+	    echo $gap_size 
+	    echo $odir;
+	    mkdir -p $odir; 
+	    cd $odir;
 	    #output of sicer (summary file): chrom, start, end, ChIP-island-read-count, control-island-read-count, p-value, fold-change, fdr-threshod
-	    #qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N sicer "module unload python; module load python/2.7.3; module load pythonlib; bash /groups/cochella/jiwang/local/SICER_V1.1/SICER/SICER.sh $OUT/sicer ${bedsample}.bed ${bedinput}.bed "." $species_sicer $redundancy_threshold $window_size $fragment_size $eff_genome_fraction $gap_size $fdr; "
+	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N sicer "module unload python; module load python/2.7.3; module load pythonlib; bash /groups/cochella/jiwang/local/SICER_V1.1/SICER/SICER.sh $OUT/sicer ${bedsample}.bed ${bedinput}.bed "." $species_sicer $redundancy_threshold $window_size $fragment_size $eff_genome_fraction $gap_size $fdr; "
 	    
-	#done
-	#cd $cwd;
+	done
+	cd $cwd;
 	
-	#break;
-    
-    #fi
-	
-done #< $PARAMETER
+    fi
+
+done 
 
 
