@@ -1,13 +1,16 @@
 #####################
 ## this script is to call peaks for ChIP-seq data using MACS2 (sharp peaks), Sicer (broad peaks) and peakrange (mixed peaks)
 #####################
-DIR_Bam="$PWD/alignments/BAMs_unique_rmdup"
-OUT=$PWD/calledPeaks_replicates
-INPUT="/groups/bell/jiwang/Projects/Jorge/INPUT/merged_Input_49475_49911_49908.bam"
-#PARAMETER="Params_Jorge.txt"
-nb_cores=4;
+DIR_Bam="$PWD/alignments/BAMs_All"
+OUT=$PWD/calledPeaks
+
+# input file if exist
+#INPUT="/groups/bell/jiwang/Projects/Jorge/INPUT/merged_Input_49475_49911_49908.bam"
+
+nb_cores=6;
 chromSize="/groups/bell/jiwang/Genomes/Mouse/mm10_UCSC/Sequence/mm10_chrom_sizes.sizes"
-species_macs="mm";
+species_macs="hs";
+
 species_sicer="mm10";
 pval=0.00001;
 fdr=0.01;
@@ -21,14 +24,12 @@ cwd=`pwd`;
 
 mkdir -p $cwd/logs
 mkdir -p $OUT/macs2
+
 #mkdir -p $OUT/macs2_broad
 #mkdir -p $OUT/peakranger
-mkdir -p $OUT/sicer
+#mkdir -p $OUT/sicer
 
 for sample in ${DIR_Bam}/*.bam; do
-#while IFS= read -r line; do
-#    IFS=, read -r "ID" "CONDITION" "INPUT"  <<<"$line"
-    
     # skip the header
     #if [ "$CONDITION" = "CONDITION" ]; then
     #echo "Header ..."
@@ -54,7 +55,11 @@ for sample in ${DIR_Bam}/*.bam; do
     ## MACS2
     cd $OUT/macs2
     #echo "peak calling with macs2"
+    if [ -n "$INPUT" ]; then  
     qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 -B --call-summits" 
+    else
+    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 -B --call-summits" 
+    fi
     cd $cwd
     #break;
 	
