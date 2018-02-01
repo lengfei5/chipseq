@@ -1,8 +1,10 @@
 #####################
-## this script is to call peaks for ChIP-seq data using MACS2 (sharp peaks), Sicer (broad peaks) and peakrange (mixed peaks)
+# this script is to call peaks for ChIP-seq (or ATAC-seq) data 
+# using MACS2 (sharp or broad peaks), Sicer (broad peaks) 
+# it is quite tricky to specify Input files if bam files need different Input
 #####################
 DIR_Bam="$PWD/alignments/BAMs_All"
-OUT=$PWD/calledPeaks
+OUT=$PWD/Peaks
 
 # input file if exist
 #INPUT="/groups/bell/jiwang/Projects/Jorge/INPUT/merged_Input_49475_49911_49908.bam"
