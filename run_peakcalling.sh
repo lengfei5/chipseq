@@ -98,7 +98,7 @@ for sample in ${DIR_Bams}/*.bam; do
 	if [ -n "$INPUT" ]; then  
 	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 -B --call-summits" 
 	else
-	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 -extsize 200 -B --call-summits" 
+	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 --nomodel --extsize 200 -B --call-summits" 
 	fi
 	cd $cwd
     fi
