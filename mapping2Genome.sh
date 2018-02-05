@@ -76,7 +76,9 @@ if [ "$PAIRED" != "TRUE" ]; then
         #echo $fname
 	fname=${fname%.fastq}
 	echo $fname
-	qsub -q public.q -o ${PWD}/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N bowtie2Map "module load samtools/0.1.18; module load bowtie2/2.2.4;bowtie2 -q -p $nb_cores -x $Genome -U $file | samtools view -bSu - | samtools sort - ${DIR_output}/$fname; samtools index ${DIR_output}/$fname.bam;" 
+	if [ ! -e "${DIR_output}/$fname.bam" ]; then
+	    qsub -q public.q -o ${PWD}/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N bowtie2Map "module load samtools/0.1.18; module load bowtie2/2.2.4;bowtie2 -q -p $nb_cores -x $Genome -U $file | samtools view -bSu - | samtools sort - ${DIR_output}/$fname; samtools index ${DIR_output}/$fname.bam;"
+	fi
     done
 else
     echo "paired_end fastq ..."
@@ -91,6 +93,8 @@ else
 	seq2=${DIR_input}/${fname}_R2${SUFFIX};
 	echo $seq1 
 	echo $seq2
-	qsub -q public.q -o ${PWD}/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N bowtie2Map "module load samtools/0.1.18; module load bowtie2/2.2.4; bowtie2 -q -p $nb_cores --no-mixed -X 2000 -x $Genome -1 $seq1 -2 $seq2  | samtools view -bSu - | samtools sort - ${DIR_output}/$fname; samtools index ${DIR_output}/$fname.bam;" 
+	if [ ! -e "${DIR_output}/$fname.bam" ]; then
+	    qsub -q public.q -o ${PWD}/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N bowtie2Map "module load samtools/0.1.18; module load bowtie2/2.2.4; bowtie2 -q -p $nb_cores --no-mixed -X 2000 -x $Genome -1 $seq1 -2 $seq2  | samtools view -bSu - | samtools sort - ${DIR_output}/$fname; samtools index ${DIR_output}/$fname.bam;" 
+	fi
     done
 fi;
