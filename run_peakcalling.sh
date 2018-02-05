@@ -12,7 +12,8 @@ while getopts ":hD:I:mbSg:" opts; do
             echo "Usage:"
             echo "$0 -m -g mm10 (if bam files in alignments/BAMs_All for chipseq)"
             echo "$0 -D XXX -m -g mm10 (bam files in XXX directory) "
-            echo "$0 -S -g mm10  "
+            echo "$0 -b -g mm10 (call mm10 peaks with macs2 broad option) "
+	    echo "$0 -S -g mm10 (call mm10 peaks with SICER) "
             exit 0
             ;;
         "D")
