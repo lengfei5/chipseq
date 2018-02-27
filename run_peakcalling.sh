@@ -9,7 +9,7 @@ while getopts ":hD:I:mbSg:" opts; do
             echo "script to do peak calling using macs2 with sharp and broad optioins"
             echo "and sicer for broad peaks"
 	    echo "no input files needed by defaut and use option -I to specify the one common input file"
-            echo "Usage:"
+            echo "Usage: "
             echo "$0 -m -g mm10 (if bam files in alignments/BAMs_All for chipseq)"
             echo "$0 -D XXX -m -g mm10 (bam files in XXX directory) "
             echo "$0 -b -g mm10 (call mm10 peaks with macs2 broad option) "
@@ -49,7 +49,7 @@ nb_cores=6;
 cwd=`pwd`;
 
 if [ -z "$DIR_Bams" ]; then
-    DIR_Bam="$PWD/alignments/BAMs_All"
+    DIR_Bams="$PWD/alignments/BAMs_All"
 fi
 
 # input file 
@@ -70,7 +70,7 @@ if [ "$genome" == "ce11" ]; then
 fi
 
 pval=0.00001; # for macs sharp
-fdr=0.05; # for macs broad and sicer
+fdr=0.1; # for macs broad and sicer
 # paras for sicer
 window_sizes="200 500 1000";
 redundancy_threshold=1;
@@ -106,13 +106,13 @@ for sample in ${DIR_Bams}/*.bam; do
     
     # MACS2 broad_peaks
     if [ "$MACS2_broad" == "TRUE" ]; then
-	#cd $OUT/macs2_broad
+	cd $OUT/macs2_broad
 	if [ -n "$INPUT" ]; then
-	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPU -n ${outname}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs -q $fdr --broad --fix-bimodal -m 5 100 -B "
+	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs -q $fdr --broad --fix-bimodal -m 5 100 -B "
 	else
-	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -n ${outname}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs -q $fdr --broad --fix-bimodal -m 5 100 -B "
+	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs -q $fdr --broad --fix-bimodal -m 5 100 -B "
 	fi
-	#cd $cwd
+	cd $cwd
     fi
         
        
