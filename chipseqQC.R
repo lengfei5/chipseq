@@ -1,7 +1,7 @@
 ##################################################
 ## Project: general purpused quality control specific for ChIP-seq data
 ## Script purpose: 
-## Usage example: 
+## Usage example: Rscript ~/scripts/Chipseq/chipseqQC.R XXX(current path)
 ## Author: Jingkui Wang (jingkui.wang@imp.ac.at)
 ## Date of creation: Wed Jan 10 11:17:03 2018
 ## tested in cluster
@@ -73,12 +73,23 @@ spp[,1] = xx
 mm = match(spp[,1], stat[,1])
 stat = data.frame(stat, spp[, -c(1,2)], stringsAsFactors = FALSE)
 
+max.nb.sample = 12;
 #source("functions_chipSeq.R")
 pdf(paste0(DIR.out, "/QCs_Summary_chipseq.pdf"), width = 20, height = 12)
 par(cex = 2.0, las = 1, mgp = c(1.6,0.5,0), mar = c(3,22,2,0.8)+0.1, tcl = -0.3)
 
-#index = c(1:nrow(stat))
-PLOT.Quality.Controls.Summary(stat)
+nn = nrow(stat)%/%max.nb.sample;
+
+# stat = matrix(NA, ncol=12, nrow=49)
+for(n in 0:nn)
+{
+  index = intersect(c(1:nrow(stat)), seq((max.nb.sample*n+1), (max.nb.sample*(n+1)), by = 1))
+  if(length(index)>0){
+    #print(index)
+    PLOT.Quality.Controls.Summary(stat[index, ])
+  }
+}
+
 
 dev.off()
 

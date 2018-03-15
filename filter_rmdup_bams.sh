@@ -1,5 +1,6 @@
 ##########################################
-# This script is to filter bam and find statistics for Bam files: number of total, mapped, unique, after duplication removed reads
+# This script is to filter bam and find statistics for Bam files: 
+# number of total, mapped, unique, after duplication removed reads
 #########################################
 while getopts ":hp" opts; do
     case "$opts" in

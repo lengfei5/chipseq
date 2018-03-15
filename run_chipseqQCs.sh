@@ -5,7 +5,7 @@
 # for ChIP-seq or ATAC-seq data  
 #
 #####################################################################
-nb_cores=4
+nb_cores=2
 #cwd=`pwd`
 DIR_cwd=$PWD
 DIR_bam="${PWD}/alignments/BAMs_All"
