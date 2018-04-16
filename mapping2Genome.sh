@@ -5,8 +5,11 @@ while getopts ":hg:p" opts; do
     case "$opts" in
         "h") 
 	    echo "script to map fastq or fq to the genome using bowite2"
-	    echo "Usage: $0 -g ce11 (single_end)"
-	    echo "$0 -g ce11 -p (paired_end) "
+	    echo "available genomes: ce10, ce11, mm10, mm9, hg19 and mm9_G11D (mm9 genome with G11 reporter) "
+	    echo "Usage: "
+	    echo "$0 -g ce11 (single_end fastq aligned to ce11)"
+	    echo "$0 -g mm10 (single_end fastq aligned to mm10)"
+	    echo "$0 -g mm10 -p (paired_end fastq aligned to mm10)"
 	    exit 0
 	    ;;
 	"g")
