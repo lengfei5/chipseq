@@ -45,7 +45,7 @@ while getopts ":hD:I:mbSg:" opts; do
 done
 
 OUT=$PWD/Peaks
-nb_cores=2;
+nb_cores=6;
 cwd=`pwd`;
 
 if [ -z "$DIR_Bams" ]; then
@@ -71,6 +71,7 @@ fi
 
 pval=0.00001; # for macs sharp
 fdr=0.1; # for macs broad and sicer
+
 # paras for sicer
 window_sizes="200 500 1000";
 redundancy_threshold=1;
@@ -116,20 +117,36 @@ for sample in ${DIR_Bams}/*.bam; do
 	fi
 	cd $cwd
     fi
-        
-       
-    # SICER 
+           
+    # SICER (to correct) 
     if [ "$SICER" == "TRUE" ]; then
+	if [ -z "$INPUT" ]; then
+	    echo '--INPUT is required--'
+	    exit;
+	fi
 	cd $OUT/sicer;
-	bedsample=${CONDITION}_${ID};
-	bedinput="INPUT"_${INPUT};
-	echo $bedsample $bedinput;
+	bedsample=${out}
+	bedinput=`basename $INPUT`
+	inputExt=${INPUT##*.}
+	bedinput=${bedinput%.*}
+	echo $bedsample 
+	echo $bedinput;
+	echo $inputExt
+	#echo "here !!"
+	
 	data=$OUT/sicer;
 	
 	#module load bedtools; 
 	if [ ! -e ${bedsample}.bed ]; then bamToBed -i $sample > ${bedsample}.bed; fi; 
-	if [ ! -e ${bedinput}.bed ]; then bamToBed -i $input > ${bedinput}.bed; fi;
-	
+	if [ ! -e ${bedinput}.bed ]; then 
+	    if [ "$inputExt" == "bed" ]; then
+		cp $INPUT $data 
+	    else
+		bamToBed -i $input > ${bedinput}.bed; 
+	    fi
+	fi;
+	#exit;
+
 	for window_size in $window_sizes
 	do
 	    gap_size=$(expr $window_size \* 3);
@@ -147,7 +164,7 @@ for sample in ${DIR_Bams}/*.bam; do
 	
     fi
     
-    #break;
+   # break;
 
 done 
 
