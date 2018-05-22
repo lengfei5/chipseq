@@ -1,15 +1,15 @@
 ###########
 ## aim of script: map fastq (or fq) file to the selected gennome (mm9, mm10, ce11 or customized genomes already indexed) using bowtie2  
 ###########
-while getopts ":hg:p" opts; do
+while getopts ":hg:pc:" opts; do
     case "$opts" in
         "h") 
 	    echo "script to map fastq or fq to the genome using bowite2"
 	    echo "available genomes: ce10, ce11, mm10, mm9, hg19 and mm9_G11D (mm9 genome with G11 reporter) "
 	    echo "Usage: "
-	    echo "$0 -g ce11 (single_end fastq aligned to ce11)"
-	    echo "$0 -g mm10 (single_end fastq aligned to mm10)"
-	    echo "$0 -g mm10 -p (paired_end fastq aligned to mm10)"
+	    echo "$0 -g ce11 -c 4 (single_end fastq aligned to ce11 and 2 cpus required)"
+	    echo "$0 -g mm10 -c 8 (single_end fastq aligned to mm10 and 8 cpus required)"
+	    echo "$0 -g mm10 -p (paired_end fastq aligned to mm10 and default number (6) cpus required)"
 	    exit 0
 	    ;;
 	"g")
@@ -17,6 +17,9 @@ while getopts ":hg:p" opts; do
             ;;
 	"p")
 	    PAIRED="TRUE"
+	    ;;
+	"c")
+	    nb_cores="$OPTARG"
 	    ;;
         "?")
             echo "Unknown option $opts"
@@ -62,10 +65,12 @@ case "$genome" in
 	;;
 esac
 
+if [ -z "$nb_cores" ]; then
+    nb_cores=6
+fi
 DIR_input="${PWD}/ngs_raw/FASTQs"
 DIR_output="${PWD}/alignments/BAMs_All"
 
-nb_cores=8
 
 mkdir -p $DIR_output
 mkdir -p $PWD/logs
