@@ -9,7 +9,7 @@ while getopts ":hD:I:mbSg:" opts; do
             echo "script to call chipseq peak using macs2 (sharp or broad optioins and  sicer for broad peaks"
 	    echo "options: "
 	    echo "-D  (to specify the directory of bam files, by default alignments/BAMs_All)"
-	    echo "-I (input, e.g. /groups/bell/jiwang/Projects/Jorge/INPUT/merged_Input_49475_49911_49908.bam for mouse mm10)" 
+	    echo "-I (input, e.g. /groups/bell/jiwang/Projects/Jorge/Analysis_ChIP_seq/INPUT/merged_Input_49475_49911_49908.bam for mouse mm10)" 
 	    echo "no input file needed by defaut"
             echo "-g (genome, i.e. mm10, ce11, hg19)"
 	    echo "-m (macs2 sharp peaks)"
