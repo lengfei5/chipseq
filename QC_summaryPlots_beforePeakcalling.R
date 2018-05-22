@@ -63,6 +63,7 @@ if(dir.exists(DIR.stat))
 }else{
   cat("NO Folder found for mapping stat !!! \n")
 }
+
 #stat = read.table('BamStat_summary.txt', sep='\t', header = FALSE)
 colnames(stat) = c('filename','nb.RawRead', 'nb.MappedRead', 'nb.UniqueRead', 'nb.UniqueRmdupRead')
 #spp = read.table('../R4646/summary_spp_QCs.txt', sep = '\t', header = TRUE)
@@ -74,6 +75,7 @@ mm = match(spp[,1], stat[,1])
 stat = data.frame(stat, spp[, -c(1,2)], stringsAsFactors = FALSE)
 
 max.nb.sample = 12;
+
 #source("functions_chipSeq.R")
 pdf(paste0(DIR.out, "/QCs_Summary_chipseq.pdf"), width = 20, height = 12)
 par(cex = 2.0, las = 1, mgp = c(1.6,0.5,0), mar = c(3,22,2,0.8)+0.1, tcl = -0.3)
