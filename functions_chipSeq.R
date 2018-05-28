@@ -170,10 +170,10 @@ doAllPlot <- function(set, allPeaksList)
         plotV(allPeaks.50, main = "Ints (< 1e-50)")
       }
 
-  #covplot(allPeaks[[9]], weightCol="V5", chrs = c(paste0("chr", c(1:19, "X", "Y"))))
+#covplot(allPeaks[[9]], weightCol="V5", chrs = c(paste0("chr", c(1:19, "X", "Y"))))
 
 
-  #peakAnnoList <- list("Normal"=annotatePeak(allPeaks[[1]],  TxDb=txdb,tssRegion=c(-2000, 200), verbose=FALSE), "TSS"=annotatePeak(allPeaks[[1]],  TxDb=txdb,tssRegion=c(0, 0), verbose=FALSE), "5kb"=annotatePeak(allPeaks[[1]],  TxDb=txdb,tssRegion=c(-5000,5000), verbose=FALSE), "3kb"=annotatePeak(allPeaks[[1]],  TxDb=txdb, verbose=FALSE))
+#peakAnnoList <- list("Normal"=annotatePeak(allPeaks[[1]],  TxDb=txdb,tssRegion=c(-2000, 200), verbose=FALSE), "TSS"=annotatePeak(allPeaks[[1]],  TxDb=txdb,tssRegion=c(0, 0), verbose=FALSE), "5kb"=annotatePeak(allPeaks[[1]],  TxDb=txdb,tssRegion=c(-5000,5000), verbose=FALSE), "3kb"=annotatePeak(allPeaks[[1]],  TxDb=txdb, verbose=FALSE))
 
     print(plotAnnoBar(peakAnnoList))
     print(plotDistToTSS(peakAnnoList))
@@ -188,37 +188,6 @@ doAllPlot <- function(set, allPeaksList)
 #        par(mfrow=c(1,1))
 #        upsetplot(peakAnnoList[[n]]) #only in TB-3.2.1-dev #  vennpie=TRUE,
       }
-}
-
-dowload.file.for.making.TxDb = function()
-{
-  #txdb = 
-    ####  Followings are also from Thomas' codes
-    ##blacklist: R slightly different the UCSC command line ...
-    #download.file("http://www.broadinstitute.org/~anshul/projects/mouse/blacklist/mm9-blacklist.bed.gz", "mm9-blacklist.bed.gz")
-    #download.file("http://hgdownload.cse.ucsc.edu/goldenPath/mm9/liftOver/mm9ToMm10.over.chain.gz", "mm9ToMm10.over.chain.gz")
-    #system("gunzip mm9ToMm10.over.chain.gz")
-    #ch <- import.chain("mm9ToMm10.over.chain")
-    #original <- import("mm9-blacklist.bed.gz")
-    #blacklist <- liftOver(x=original, chain=ch)
-    #blacklist <- unlist(blacklist)
-    #saveRDS(file="mm10-blacklist.rds", blacklist)
-    #blacklist <- import("mm10-blacklist.bed")
-  
-  #TxDB
-  txdb <- makeTxDbFromUCSC(genome="ce10", tablename="refGene")
-  saveDb(txdb, file="refGene_ce10.sqlite")
-  #download.file("http://hgdownload.soe.ucsc.edu/goldenPath/mm10/database/refGene.txt.gz", "refGene20150925.txt.gz")
-  #download.file("http://hgdownload.soe.ucsc.edu/goldenPath/mm10/database/refFlat.txt.gz", "refFlat20150925.txt.gz")
-  #download.file("http://hgdownload.soe.ucsc.edu/goldenPath/mm10/database/refLink.txt.gz", "refLink20150925.txt.gz")
-  #saveDb(txdb, file="refGene20150925.sqlite")
-  #export(genes(txdb), "refGene20150925.gene.bed", format='BED')
-  #export(promoters(genes(txdb), upstream=0, downstream=0), "refGene20150925.tss.bed", format='BED')
-  #txdb <- loadDb("refGene20150925.sqlite")
-  #txdb <- makeTxDbFromGFF("/groups/bioinfo/thomas/ucsc/mm10/mm10_refSeq.gene.noRandomChr.gtf", format="gtf") #exclude random chromosomes
-  #txdb <- makeTxDbFromGFF(pipe('grep -P -v "chr\\S+_random" /groups/bioinfo/thomas/ucsc/mm10/mm10_refGene'), format="gtf") #exclude random chromosomes
-  #txdb
-  
 }
 
 #for (set in c("macs14", "macs2", "macs2qval"))
@@ -237,44 +206,19 @@ dowload.file.for.making.TxDb = function()
 #experiment = ChIPQC(samples)
 #experiment
 #ChIPQCreport(experiment)
-find.samples.conditions = function(x, ID='samples')
-{
-  if(ID=='samples') 
-  { 
-    j = 2
-    temp = unlist(strsplit(as.character(x), '_'));
-    return(temp[j])
-  }
-  if(ID=='conditions') 
-  {
-    j = 1;
-    temp = unlist(strsplit(as.character(x), '_'));
-    temp = temp[j]
-    temp = unlist(strsplit(as.character(temp), '[.]'));
-    return(temp[length(temp)])
-    #kk = which(temp=='macs2')
-    #return(paste(temp[c(n1:(kk-n2))], sep='', collapse = '_'))
-  }
-}
-
-PLOT.Quality.Controls.Summary = function(stat, selected.samples=c(1:nrow(stat)), group.samples.conditions=FALSE)
+PLOT.Quality.Controls.Summary = function(stat, index)
 {
   par(mfrow=c(2,2))
+  ss = stat[index, ]
+  samples = sapply(ss$filename, find.samples.conditions, ID='samples')
+  conditions =  sapply(ss$filename, find.samples.conditions, ID='conditions')
+  ss$conditions = conditions
+  ss = data.frame(ss, stringsAsFactors = FALSE)
+  ss = ss[with(ss, order(samples, conditions)), ]
   
-  ss = stat[selected.samples, ]
-  if(group.samples.conditions)
-  {
-    samples = sapply(ss$filename, find.samples.conditions, ID='samples')
-    conditions =  sapply(ss$filename, find.samples.conditions, ID='conditions')
-    ss$conditions = conditions
-    ss = data.frame(ss, stringsAsFactors = FALSE)
-    ss = ss[with(ss, order(conditions, samples)), ]
-    cols.conditions = data.frame(unique(conditions), c(1:length(unique(conditions))))
-    cols = cols.conditions[match(ss$conditions, cols.conditions[,1]), 2]
-  }else{
-    cols = c(1:nrow(ss))
-  }
-
+  cols.conditions = data.frame(unique(conditions), c(1:length(unique(conditions))))
+  cols = cols.conditions[match(ss$conditions, cols.conditions[,1]), 2]
+  
   barplot(as.numeric(ss$nb.UniqueRead)/10^6, col=cols, main="nb of uniquely-mapped Reads", horiz=TRUE, names.arg = ss$filename, 
           las=1, xlim = c(0, 50))
   abline(v=c(10, 20), col='red', lty=1, lwd=2.0);abline(v=c(20, 45), col='red', lty=1, lwd=2.0)
@@ -310,109 +254,251 @@ PLOT.Quality.Controls.Summary = function(stat, selected.samples=c(1:nrow(stat)),
   
 }
 
-PeakAnnotation.customized = function(pp, window.size=2000, annotation='wormbase')
+Comparison.overlapping.peaks = function(design.matrix, peaks.list, toCompare="factor.condition", pval=10, PLOT.p10 = FALSE, qval=0.1) 
 {
-  peaks = pp;
-  ### import Refseq annotation
-  #annot = read.table('/Volumes/groups/cochella/jiwang/Projects/Julien/R4224/Refseq_annotation.txt', header = TRUE, sep='\t')
-  #save(annot, file='Refseq_annotation.Rdata')
-  chrom.size = read.delim('ce10_chrom.sizes', sep='\t', header = FALSE)
-  if(annotation=='wormbase')
-  {
-    #annot = read.delim('/Volumes/groups/cochella/jiwang/annotations/BioMart_WBcel235.txt', sep='\t', header = TRUE)
-    #colnames(annot)[c(3,)]
-    #save(annot, file='/Volumes/groups/cochella/jiwang/annotations/BioMart_WBcel235.Rdata')
-    load(file='/Volumes/groups/cochella/jiwang/annotations/BioMart_WBcel235.Rdata')
-    ## filter the annotation
-    sels = which(annot$Chromosome.scaffold.name != "MtDNA" & annot$Status..gene.=="KNOWN");
-    annot = annot[sels, ]
-    mm = match(unique(annot$Gene.stable.ID), annot$Gene.stable.ID)
-    annot = annot[mm, ]
-    aa = data.frame(annot$Chromosome.scaffold.name,
-                    annot$Gene.Start..bp., annot$Gene.End..bp., 
-                    annot$Strand, annot$Gene.stable.ID, annot$Gene.name, stringsAsFactors = FALSE);
-    colnames(aa) = c('chr', 'start', 'end', 'strand', 'wormbase.ID', 'gene')
-    aa$strand[which(aa$strand>0)] = '+';
-    aa$strand[which(aa$strand<0)] = '-';
-    aa$chr = paste0('chr', aa$chr)
-  }
-  if(annotation=='refseq')
-  {
-    load(file='Refseq_annotation.Rdata');
-    aa = data.frame(annot$ce10.refGene.chrom, 
-                    annot$ce10.refGene.txStart, annot$ce10.refGene.cdsEnd, 
-                    annot$ce10.refGene.strand, annot$ce10.refGene.name, annot$ce10.refGene.name2, stringsAsFactors = FALSE);
-    colnames(aa) = c('chr', 'start', 'end', 'strand', 'RefID', 'gene')
-  }
-  
-  aa = makeGRangesFromDataFrame(aa, keep.extra.columns=TRUE)
-  
-  targets = NULL;
-  for(n in 1:length(peaks))
-  #for(n in 1:100)
-  {
-    #n = 2
-    cat('peak index ....', n, '\n')
-    px = data.frame(peaks[n], stringsAsFactors = FALSE); 
+  if(toCompare == "factor"){
+    cat("DB analysis for each factor across condition \n")
+    cat("Should merge peaks for all replicates \n")
     
-    ll = chrom.size[which(chrom.size[,1]==px[,1]),2]
-    wsize = window.size;
-    find = 1
-    while(find>0)
+  }
+  if(toCompare=="factor.condition"){
+    cat("Quality control by compare peaks from replicates \n")
+    sels2compare = unique(design.matrix$factor.condition)
+  }
+
+  for(nn in sels2compare)
+  {
+    #nn = "H3K27me3_AN312"
+    #nn = "Eed_ko_AK119ub"
+    cat(nn, '\n')
+    kk = which(design.matrix$factor.condition==nn)
+    #if(DB.Analysis){
+    #  kk = which(ff$sample==nn)
+    #}else{
+     
+    #}
+    
+    if(length(kk)>1)
     {
-      start = px[,2]-wsize;end=px[,3]+wsize;
-      
-      if(start<0) start=0;
-      if(end>ll) end=ll;
-      dd = data.frame(px[,1], start, end, stringsAsFactors = FALSE); colnames(dd) = c('chr', 'start', 'end')
-      newp = makeGRangesFromDataFrame(dd)
-      
-      if(overlapsAny(newp, aa))
+      peaks = c()
+      peaks10 = c()
+      peaknames = design.matrix$file.name[kk]
+      for(k in kk) 
       {
-        tt = aa[overlapsAny(aa, newp)]
-        for(m in 1:length(tt))
-        {
-          targets = rbind(targets, data.frame(data.frame(px), data.frame(tt[m]), window.size = wsize, stringsAsFactors = FALSE))
-        }
-       find = -1; 
-      }else{
-        wsize = wsize + window.size;
+        p = peaks.list[[k]]
+        #p = readPeakFile(ff$file.path[k], as = "GRanges");
+        #eval(parse(text = paste0("p = pp.", k)));
+        p10 <- p[mcols(p)[,"X.log10.pvalue."] > pval];
+        p = reduce(p); 
+        p10 = reduce(p10);
+        peaks= c(peaks, p);
+        peaks10= c(peaks10, p10);
+        #peaknames = c(peaknames, ff$file.name[k])
+        #if(DB.Analysis){
+        #  peaknames = c(peaknames, ff$sample.condition[k])
+        #}else{
+        #}
+        #test = basename(macs2.files[k])
+        #test = find.sample.names(test, n2=2)
+        #test = unlist(strsplit(as.character(test), '_'))
+        #test =test[length(test)]
+        #nb.reads = bamstatistics[grep(test, bamstatistics[,2]), 5]
+        #peaknames = c(peaknames, paste(ff$file.name[k], test,  sep='_', collapse = '_'))
+      }
+      
+      ol.peaks <- makeVennDiagram(peaks, NameOfPeaks=peaknames, connectedPeaks="keepAll", main=nn)
+      v <- venn_cnt2venn(ol.peaks$vennCounts)
+      try(plot(v))
+      if(PLOT.p10){
+        ol.peaks <- makeVennDiagram(peaks10, NameOfPeaks=paste(peaknames, '_p10', sep=''), connectedPeaks="keepAll", main=nn)
+        v <- venn_cnt2venn(ol.peaks$vennCounts)
+        try(plot(v))
       }
     }
-    #resize(px, fix = '', width = 10)
-    #reduce(px, drop.empty.ranges=FALSE, min.gapwidth=1L, with.revmap=FALSE, with.inframe.attrib=FALSE, ignore.strand=FALSE)
   }
   
-  return(targets)
 }
 
-Peak.GPS = function(pp)
+find.sample.names = function(x, n1=1, n2=3)
 {
-  #pp = res[407, ]
-  summit = floor(mean(as.numeric(pp[match(c('start.peak', 'end.peak'), names(pp))])));
-  tss = as.numeric(pp[which(names(pp)=='TSS')]);
-  strand = pp[which(names(pp)=='strand.gene')];
-  start = as.numeric(pp[which(names(pp)=='start.gene')]);
-  end = as.numeric(pp[which(names(pp)=='end.gene')]);
-  if(is.na(tss)){
-    if(strand=='+'){tss = start;
-    }else{tss = end;}
-  }
-  dist.tss = summit - tss; if(strand =='-') dist.tss = - dist.tss;
-  promoter.1kb = (summit< (tss+1000) & summit> (tss-1000))
-  promoter.2kb = ((summit< (tss+2000) & summit > (tss+1000)) | (summit> (tss-2000) & summit<(tss-1000)))
-  gene.body = (summit< end & summit> start)
-  if(strand=='+')
-  {
-    dowstream.3kb = (summit > end & summit < (end+3000))
-  }else{
-    dowstream.3kb = (summit > (start -3000) & summit < (start))
-  }
-  test = c(promoter.1kb, promoter.2kb, gene.body, dowstream.3kb)
-  if(sum(test)==0) {test = c(test, TRUE) 
-  }else {test = c(test, FALSE)}
-  
-  return(c(dist.tss, test))
+  temp = unlist(strsplit(as.character(x), '_'));
+  kk = which(temp=='macs2')
+  return(paste(temp[c(n1:n2)], sep='', collapse = '_'))
 }
 
+
+find.samples.conditions = function(x, ID='samples')
+{
+  if(ID=='samples') 
+  { 
+    j = 2
+    temp = unlist(strsplit(as.character(x), '_'));
+    return(temp[j])
+  }
+  if(ID=='conditions') 
+  {
+    j = 1;
+    temp = unlist(strsplit(as.character(x), '_'));
+    temp = temp[j]
+    temp = unlist(strsplit(as.character(temp), '[.]'));
+    return(temp[length(temp)])
+    #kk = which(temp=='macs2')
+    #return(paste(temp[c(n1:(kk-n2))], sep='', collapse = '_'))
+  }
+}
+
+Assess.ChIPseq.Quality.4DB = function(dds, batch = FALSE) ### Input is DEseq2 object from read counts within peak union across condition
+{
+  require(lattice);
+  require(ggplot2)
+  require('DESeq2');
+  library("vsn");
+  library("pheatmap");
+  library("RColorBrewer");
+  library("dplyr"); 
+  library("ggplot2")
+  require(lattice);
+  #require(ggplot2)
+  cc.uniq = unique(conds);
+  cols = match(conds, cc.uniq)
+  
+  fpm = fpm(dds, robust = TRUE)
+  vsd <- varianceStabilizingTransformation(dds, blind = FALSE)
+  xx = fpm;
+  
+  ### boxplot (distribution) of gene expression for each sample
+  par(mfrow=c(1,1))
+  par(cex = 1.0, las = 1, mgp = c(2,0.2,0), mar = c(15,3,2,0.2), tcl = -0.3)
+  for(n in 1:ncol(xx)){
+    kk = which(xx[,n]>0);
+    if(n==1) boxplot(log2(xx[kk, n]), horizontal = FALSE, las=2, at=(n), ylim=c(-6, 23), xlim=c(0, (ncol(xx)+1)), names=as.character(colnames(xx)[n]),
+                     las=1, width=0.6, ylab='log2(fpm)', col=cols[n], main="Distribution of normalized signals (cpm)")
+    else boxplot(log2(xx[kk, n]), horizontal = FALSE, las=1, add=TRUE, at=(n), names=colnames(xx)[n], width=0.6, col=cols[n])
+    mtext(colnames(xx)[n], side = 1, at=n, las=2)
+  }
+  
+  ### pairwise correlations for fpm
+  par(cex = 1.0, las = 1, mgp = c(2,0.2,0), mar = c(3,2,2,0.2), tcl = -0.3)
+  library(corrplot)
+  col1 <- colorRampPalette(c("#7F0000","red","#FF7F00","yellow","white", 
+                             "cyan", "#007FFF", "blue","#00007F"))
+  xx = as.matrix(fpm)
+  xx[which(xx==0)] = NA
+  M <- cor(xx, use = "na.or.complete")
+  #corrplot(M, method="circle", type = 'upper', order="hclust")
+  corrplot(M, method="ellipse", order="hclust", tl.cex=1.2, cl.cex=0.7, tl.col="black", addrect=ceiling(ncol(xx)/2), col=col1(100), rect.col=c('green'), rect.lwd=2.0)
+  
+  library("vsn");
+  library("pheatmap");
+  library("RColorBrewer");
+  library("dplyr")
+  library("ggplot2")
+  #colnames(fpm) = paste(colnames(fpm), '.fpm', sep='')
+  #if(nrow(dds)<1000) {vsd =  rlog(dds, blind = FALSE)
+  #}else{vsd <- vst(dds, blind = FALSE)}
+  
+  df <- bind_rows(
+    as_data_frame(log2(counts(dds, normalized=TRUE)[, 1:2]+1)) %>%
+      mutate(transformation = "log2(x + 1)"),
+    #as_data_frame(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"),
+    as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst"))
+  
+  colnames(df)[1:2] <- c("x", "y")  
+  vsd.transform=ggplot(df, aes(x = x, y = y)) + geom_hex(bins = 80) +
+    coord_fixed() + facet_grid( . ~ transformation)
+  #print(vsd.transform)
+  sampleDists <- dist(t(assay(vsd)))
+  #sampleDists
+  #rld <- rlog(dds, blind=FALSE)
+  sampleDistMatrix <- as.matrix( sampleDists)
+  #rownames(sampleDistMatrix) <- paste( vsd$dex, vsd$cell, sep = " - " )
+  #colnames(sampleDistMatrix) <- NULL
+  colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+  pheatmap(sampleDistMatrix,
+           clustering_distance_rows = sampleDists,
+           clustering_distance_cols = sampleDists,
+           col = colors)
+  #plot(distClustering)
+  
+  if(batch){
+    pca=plotPCA(vsd, intgroup = c('batch', 'cell'), returnData=FALSE)
+  }else{
+    pca=plotPCA(vsd, intgroup = c('conds'), returnData=FALSE)
+  }
+  plot(pca);
+  
+  Show.sample.names.PCA.Clusters = TRUE
+  if(Show.sample.names.PCA.Clusters){
+    pca2save = as.data.frame(plotPCA(vsd, intgroup =c('conds'), returnData = TRUE))
+    #p = ggplot(data=pca2save, aes(PC1, PC2, label = name, color=condition, shape=time)) + geom_point(size=3)
+    #p + geom_text(hjust = 0.5, nudge_y = 0.1, size=2.5) 
+    ggp = ggplot(data=pca2save, aes(PC1, PC2, label = name, color=conds)) + geom_point(size=3) +
+      geom_text(hjust = 0.7, nudge_y = 1, size=2.5)  
+    plot(ggp);
+  }
+  
+  panel.cor <- function(x, y, digits=2, prefix="", cex.cor) 
+  {
+    usr <- par("usr"); on.exit(par(usr)) 
+    par(usr = c(0, 1, 0, 1)) 
+    r <- abs(cor(x, y)) 
+    txt <- format(c(r, 0.123456789), digits=digits)[1] 
+    txt <- paste(prefix, txt, sep="") 
+    if(missing(cex.cor)) cex <- 0.8/strwidth(txt) 
+    
+    test <- cor.test(x,y) 
+    # borrowed from printCoefmat
+    Signif <- symnum(test$p.value, corr = FALSE, na = FALSE, 
+                     cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                     symbols = c("***", "**", "*", ".", " ")) 
+    
+    text(0.5, 0.5, txt, cex = cex * r) 
+    text(.8, .8, Signif, cex=cex, col=2) 
+  }
+  
+  panel.fitting = function (x, y, bg = NA, pch = par("pch"), cex = 0.01, col='black') 
+  {
+    #x = yy[,1];y=yy[,2];
+    #kk = which(x>0 & y>0); x=x[kk];y=y[kk]
+    lims = range(c(x, y), na.rm = TRUE)
+    points(x, y, pch = 1, col = col, cex = cex, xlim=lims, ylim=lims)
+    abline(0, 1, lwd=1.0, col='red')
+    R = cor(x, y, use="na.or.complete", method='pearson')
+    text(lims[2]*0.2, lims[2]*0.9, paste0('R = ', signif(R, d=2)), cex=0.5, col='red')
+    jj = which(!is.na(x) & !is.na(y))
+    fit = lm(y[jj] ~ x[jj])
+    #slope=summary(fit)$coefficients[1]
+    slope = fit$coefficients[2]
+    intercept = fit$coefficients[1]
+    pval=summary(fit)$coefficients[4]
+    abline(intercept, slope, lwd=1.2, col='darkblue', lty=3)
+    #text(lims[2]*0.1, lims[2]*0.7, paste0('slop = ', signif(slope, d=2)), cex=1., col='blue')
+    #text(lims[2]*0.1, lims[2]*0.6, paste0('pval = ', signif(pval, d=2)), cex=1., col='blue')
+    #ok <- is.finite(x) & is.finite(y)
+    #if (any(ok)) 
+    #lines(stats::lowess(x[ok], y[ok], f = span, iter = iter), 
+    #        col = col.smooth, ...)
+  }
+  
+  ###  pairwise correlation and fitting (to chek if there is batch effect)
+  yy = as.matrix(fpm)
+  #yy = as.matrix(assay(vsd))
+  #yy = as.matrix(xx[, c(1:3)])
+  yy[which(yy==0)] = NA;
+  yy = log2(yy)
+  
+  cc.partA = c("AN312", "515D10", "515D10H3")
+  cc.partB = c("AN312", "515D10", "D10A8", "D10D8")
+  cc.partC = c("924E12", "515D10", "E12F01")
+  
+  kk = match(dds$conds, cc.partA); ii = which(!is.na(kk));
+  if(length(unique(dds$conds[ii]))>2) pairs(yy[, ii], lower.panel=NULL, upper.panel=panel.fitting)
+  
+  kk = match(dds$conds, cc.partB); ii = which(!is.na(kk));
+  if(length(unique(dds$conds[ii]))>2) pairs(yy[, ii], lower.panel=NULL, upper.panel=panel.fitting)
+  
+  kk = match(dds$conds, cc.partC); ii = which(!is.na(kk));
+  if(length(unique(dds$conds[ii]))>2) pairs(yy[, ii], lower.panel=NULL, upper.panel=panel.fitting)
+  
+}
 
