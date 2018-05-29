@@ -1,5 +1,6 @@
 ###############################################
-# this script is to correct GG bias sample by sample for ChIP-seq Bams using deeptools 
+# This script is to correct GG bias sample by sample for ChIP-seq Bams 
+# currently deeptools is used to do so 
 # Input is bam file and associated peaks, because GC correction is done by excluding those peak regions
 # otherwise it would be easily over-corrected
 # 
