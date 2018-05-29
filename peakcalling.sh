@@ -8,7 +8,7 @@ while getopts ":hD:I:mbSg:" opts; do
         "h")
             echo "script to call chipseq peak using macs2 (sharp or broad optioins and  sicer for broad peaks"
 	    echo "options: "
-	    echo "-D  (to specify the directory of bam files, by default alignments/BAMs_All)"
+	    echo "-D  (specfiy the ABSOLUTE directory of bam files or by default alignments/BAMs_All)"
 	    echo "-I (input, e.g. /groups/bell/jiwang/Projects/Jorge/Analysis_ChIP_seq/INPUT/merged_Input_49475_49911_49908.bam for mouse mm10)" 
 	    echo "no input file needed by defaut"
             echo "-g (genome, i.e. mm10, ce11, hg19)"
@@ -17,7 +17,7 @@ while getopts ":hD:I:mbSg:" opts; do
 	    echo "-S (sicer)"
 	    echo "Usage: "
             echo "$0 -m -g mm10 (if bam files in alignments/BAMs_All for chipseq)"
-            echo "$0 -D XXX -m -g mm10 (bam files in XXX directory) "
+            echo "$0 -D /clustertmp/Jorge_R6118/alignments/BAMs_All_GCc_merged -m -g mm10 (bam files in XXX directory) "
             echo "$0 -b -g mm10 (call mm10 peaks with macs2 broad option) "
 	    echo "$0 -S -g mm10 (call mm10 peaks with SICER) "
             exit 0
