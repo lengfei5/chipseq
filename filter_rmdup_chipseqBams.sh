@@ -25,7 +25,7 @@ while getopts ":hp" opts; do
 done
 
 ## mm10 or ce10
-nb_cores=2
+nb_cores=1
 #blacklist="/groups/bell/jiwang/Genomes/C_elegans/ce10/ce10_blacklist/ce10-blacklist.bed" 
 MAPQ_cutoff=30
 
@@ -91,5 +91,3 @@ echo \"$ff \$total \$mapped \$unique \$rmdup\"|tr ' ' '\t' > $stat" > ${DIR_stat
     
     #break; 
 done
-
-

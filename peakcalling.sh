@@ -73,7 +73,7 @@ if [ "$genome" == "ce11" ]; then
 fi
 
 pval=0.00001; # for macs sharp
-fdr=0.1; # for macs broad and sicer
+fdr=0.05; # for macs broad and sicer
 
 # paras for sicer
 window_sizes="200 500 1000";

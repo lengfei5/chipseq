@@ -47,7 +47,7 @@ do
     matrix_name2="${prot}_${out_gcc}_matrix4heatmap.gz"
     matrix2save2="${prot}_${out_gcc}_matrix4save.txt"
     heatmap2="${prot}_${out_gcc}_heatmap_profile_RPKM"
-   
+    
     qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N heatmap "module load python/2.7.3; module load deeptools/2.5.0.1-python2.7.3; computeMatrix reference-point --referencePoint=center -S "$ffs1" -R $peak -a 5000 -b 5000 --outFileName "$matrix_name" --outFileNameMatrix "$matrix2save" --skipZeros --binSize=$binsize  --sortUsingSamples 1 --sortUsing=mean; plotHeatmap -m "$matrix_name" --colorMap Blues --sortRegions descend -o ${heatmap}.pdf; plotProfile -m "$matrix_name" -o ${heatmap}.png --plotHeight 12 --plotWidth 15 --colors blue green navy; " 
     
     #echo 

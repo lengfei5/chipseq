@@ -66,14 +66,16 @@ case "$genome" in
 esac
 
 if [ -z "$nb_cores" ]; then
-    nb_cores=6
+    nb_cores=4
 fi
+
 DIR_input="${PWD}/ngs_raw/FASTQs"
 DIR_output="${PWD}/alignments/BAMs_All"
-
+DIR_logs=${PWD}/logs
+jobName='bowtie2'
 
 mkdir -p $DIR_output
-mkdir -p $PWD/logs
+mkdir -p $DIR_logs
 
 if [ "$PAIRED" != "TRUE" ]; then
     echo "single-end fastq..."
@@ -85,7 +87,28 @@ if [ "$PAIRED" != "TRUE" ]; then
 	fname=${fname%.fastq}
 	echo $fname
 	if [ ! -e "${DIR_output}/$fname.bam" ]; then
-	    qsub -q public.q -o ${PWD}/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N bowtie2Map "module load samtools/0.1.18; module load bowtie2/2.2.4; bowtie2 -q -p $nb_cores -x $Genome -U $file | samtools view -bSu - | samtools sort - ${DIR_output}/$fname; samtools index ${DIR_output}/$fname.bam;"
+	    # creat the script for each sample
+	    script=$DIR_logs/${fname}_${jobName}.sh
+	    cat <<EOF > $script
+#!/usr/bin/bash	
+
+#SBATCH --cpus-per-task=$nb_cores
+#SBATCH --time=120
+#SBATCH --mem=8000
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH -o $DIR_logs/${fname}.out
+#SBATCH -e $DIR_logs/${fname}.err
+#SBATCH --job-name $jobName
+module load samtools/0.1.20-foss-2018b
+module bowtie2/2.3.4.2-foss-2018b
+bowtie2 -q -p $nb_cores -x $Genome -U $file | samtools view -bSu - | samtools sort - ${DIR_output}/${fname}; 
+samtools index ${DIR_output}/${fname}.bam;
+
+EOF
+	    cat $script
+	    #sbatch $script
+	    
 	fi
     done
 else
@@ -101,8 +124,32 @@ else
 	seq2=${DIR_input}/${fname}_R2${SUFFIX};
 	echo $seq1 
 	echo $seq2
+	
 	if [ ! -e "${DIR_output}/$fname.bam" ]; then
-	    qsub -q public.q -o ${PWD}/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N bowtie2Map "module load samtools/0.1.18; module load bowtie2/2.2.4; bowtie2 -q -p $nb_cores --no-mixed -X 2000 -x $Genome -1 $seq1 -2 $seq2  | samtools view -bSu - | samtools sort - ${DIR_output}/$fname; samtools index ${DIR_output}/$fname.bam;" 
+	    # creat the script for each sample
+	    script=$DIR_logs/${fname}_${jobName}.sh
+	    cat <<EOF > $script
+#!/usr/bin/bash	
+
+#SBATCH --cpus-per-task=$nb_cores
+#SBATCH --time=120
+#SBATCH --mem=8000
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH -o $DIR_logs/${fname}.out
+#SBATCH -e $DIR_logs/${fname}.err
+#SBATCH --job-name $jobName
+module load samtools/0.1.20-foss-2018b;
+module load bowtie2/2.3.4.2-foss-2018b
+
+bowtie2 -q -p $nb_cores --no-mixed -X 2000 -x $Genome -1 $seq1 -2 $seq2  | samtools view -bSu - | \
+samtools sort - ${DIR_output}/$fname; 
+samtools index ${DIR_output}/$fname.bam;
+
+EOF
+	    cat $script
+	    sbatch $script
+
 	fi
     done
 fi;

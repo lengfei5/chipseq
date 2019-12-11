@@ -7,6 +7,11 @@ library("Vennerable") #install.packages("Vennerable", repos="http://R-Forge.R-pr
 library("ggplot2")
 library("GenomicFeatures")
 
+########################################################
+########################################################
+# Section: legacy codes from Thomas Burkard
+########################################################
+########################################################
 venn_cnt2venn <- function(venn_cnt){
   n <- which(colnames(venn_cnt)=="Counts") - 1
   SetNames=colnames(venn_cnt)[1:n]
@@ -197,15 +202,12 @@ doAllPlot <- function(set, allPeaksList)
 #    dev.off()
 #  }
 
-
-
-
-#ChipQC
-#library(ChIPQC)
-#samples <- read.delim("Jorge_Arturo.Zepeda_Martinez.chipqc.txt")
-#experiment = ChIPQC(samples)
-#experiment
-#ChIPQCreport(experiment)
+########################################################
+########################################################
+# Section: Quality control parts 
+# including peak overlapping check
+########################################################
+########################################################
 PLOT.Quality.Controls.Summary = function(stat, index)
 {
   par(mfrow=c(2,2))
@@ -254,24 +256,58 @@ PLOT.Quality.Controls.Summary = function(stat, index)
   
 }
 
+
+make.design.matrix.from.peaks.files = function(peak.files)
+{
+  cat("-- parsing design matrix\n")
+  bname = basename(peak.files)
+  xx = c()
+  yy = c()
+  for(n in 1:length(bname))
+  {
+    test = bname[n];
+    test = unlist(strsplit(as.character(test), "_"))
+    xx = c(xx, test[1])
+    #test = unlist(strsplit(as.character(test), "[.]"))[-1]
+    #test = paste0(test, collapse = ".")
+    yy = c(yy, test[2])
+  }
+  design = data.frame(yy, xx)
+  
+  #design = data.frame(sapply(bname, find.samples.conditions, ID='conditions'), sapply(bname, find.samples.conditions, ID='samples'),
+  #                    stringsAsFactors = FALSE)
+  design.matrix = data.frame(peak.files, bname, design, stringsAsFactors = FALSE)
+  
+  colnames(design.matrix) = c('file.path', 'file.name', 'condition', 'factor')
+  design.matrix = design.matrix[with(design.matrix, order(factor, condition)), ];
+  
+  factor.condition = paste0(design.matrix$factor, '_', design.matrix$condition)
+  design.matrix = data.frame(design.matrix, factor.condition, stringsAsFactors = FALSE)
+  
+}
+
 Comparison.overlapping.peaks = function(design.matrix, peaks.list, toCompare="factor.condition", pval=10, PLOT.p10 = FALSE, qval=0.1) 
 {
+  
   if(toCompare == "factor"){
-    cat("DB analysis for each factor across condition \n")
-    cat("Should merge peaks for all replicates \n")
+    cat("Warning ---- DB analysis for each factor across condition \n")
+    cat("Warning ---- Should merge peaks for all replicates \n")
+    
+  }else{
+    cat("checking peak overlapping for",  toCompare, "\n")
+    if(toCompare=="factor.condition"){
+     cat("--compare peak overlapping for replicates--\n") 
+    }
+    sels2compare = unique(design.matrix[, which(colnames(design.matrix)==toCompare)]);
     
   }
-  if(toCompare=="factor.condition"){
-    cat("Quality control by compare peaks from replicates \n")
-    sels2compare = unique(design.matrix$factor.condition)
-  }
-
+  
   for(nn in sels2compare)
   {
     #nn = "H3K27me3_AN312"
-    #nn = "Eed_ko_AK119ub"
+    #nn = "90min"
     cat(nn, '\n')
-    kk = which(design.matrix$factor.condition==nn)
+    kk = which(design.matrix[, which(colnames(design.matrix)==toCompare)]==nn)
     #if(DB.Analysis){
     #  kk = which(ff$sample==nn)
     #}else{
@@ -288,32 +324,31 @@ Comparison.overlapping.peaks = function(design.matrix, peaks.list, toCompare="fa
         p = peaks.list[[k]]
         #p = readPeakFile(ff$file.path[k], as = "GRanges");
         #eval(parse(text = paste0("p = pp.", k)));
-        p10 <- p[mcols(p)[,"X.log10.pvalue."] > pval];
-        p = reduce(p); 
-        p10 = reduce(p10);
-        peaks= c(peaks, p);
-        peaks10= c(peaks10, p10);
-        #peaknames = c(peaknames, ff$file.name[k])
-        #if(DB.Analysis){
-        #  peaknames = c(peaknames, ff$sample.condition[k])
-        #}else{
-        #}
-        #test = basename(macs2.files[k])
-        #test = find.sample.names(test, n2=2)
-        #test = unlist(strsplit(as.character(test), '_'))
-        #test =test[length(test)]
-        #nb.reads = bamstatistics[grep(test, bamstatistics[,2]), 5]
-        #peaknames = c(peaknames, paste(ff$file.name[k], test,  sep='_', collapse = '_'))
+        with.p.values = "X.log10.pvalue." %in% colnames(mcols(p))
+        if(with.p.values) {
+          p10 <- p[mcols(p)[,"X.log10.pvalue."] > pval];
+          p10 = reduce(p10);
+          peaks10= c(peaks10, p10);
+        }else{ 
+          cat("no p values conlumn found for -- ", design.matrix$file.name[k], "\n");
+          PLOT.p10 = FALSE;
+        }
+        
+        p = reduce(p)
+        peaks= c(peaks, p)
       }
       
       ol.peaks <- makeVennDiagram(peaks, NameOfPeaks=peaknames, connectedPeaks="keepAll", main=nn)
       v <- venn_cnt2venn(ol.peaks$vennCounts)
       try(plot(v))
+      
       if(PLOT.p10){
         ol.peaks <- makeVennDiagram(peaks10, NameOfPeaks=paste(peaknames, '_p10', sep=''), connectedPeaks="keepAll", main=nn)
         v <- venn_cnt2venn(ol.peaks$vennCounts)
         try(plot(v))
       }
+    }else{
+      cat("Error --- less than 2 samples selected to compare for ", sels2compare[nn], "\n")
     }
   }
   
@@ -347,7 +382,84 @@ find.samples.conditions = function(x, ID='samples')
   }
 }
 
-Assess.ChIPseq.Quality.4DB = function(dds, batch = FALSE) ### Input is DEseq2 object from read counts within peak union across condition
+########################################################
+########################################################
+# Section: Differential Binding (DB) analysis after counting reads within peaks
+########################################################
+########################################################
+merge.peaks.macs2 = function(peak.list, merge.dist = NULL){
+  # peak.list = peak.list[grep(prot, peak.list)]
+  for(n in 1:length(peak.list)){
+    cat(peak.list[n], "\n")
+    if(n == 1){
+      peaks.merged <- readPeakFile(peak.list[n] , as = "GRanges")  
+    }else{
+      px = readPeakFile(peak.list[n] , as = "GRanges")  
+      peaks.merged = GenomicRanges::union(peaks.merged, px, ignore.strand=TRUE)
+    }
+  }
+  
+  if(!is.null(merge.dist)){
+    peaks.merged <- mergeWindows(peaks.merged, tol=merge.dist, ignore.strand = TRUE)
+    peaks.merged = peaks.merged$region
+    #peaks.merged = GenomicRanges::reduce(pps);
+  }
+  peaks.merged = as.data.frame(peaks.merged)
+  return(peaks.merged)
+  
+}
+
+quantify.signals.within.peaks = function(peaks, bam.list, normalization = FALSE)
+{
+  require(Rsubread)
+  ## peak regions (configure your peak regions into a data.frame)
+  peaks = data.frame(peaks)
+  colnames(peaks)[c(1:3)] = c("chr", "start", "end")
+  peaks$peak.name = paste0(peaks$chr, "_", peaks$start, "_", peaks$end)
+  jj = match(unique(peaks$peak.name), peaks$peak.name)
+  df = peaks[jj, ];
+  
+  SAF = data.frame(GeneID=df$peak.name, Chr=df$chr, Start=df$start, End=df$end, Strand="+", stringsAsFactors = FALSE)
+  
+  ## count reads for those peak regions using 
+  fc <- featureCounts(files=bam.list, annot.ext = SAF, countMultiMappingReads = FALSE, minMQS = 10, 
+                      ignoreDup = TRUE, strandSpecific = 0, juncCounts = FALSE, nthreads = 6)
+  stat = fc$stat;
+  counts = fc$counts;
+  counts.annot = fc$annotation
+  
+  if(normalization){
+    rpkm = matrix(NA, ncol = ncol(counts), nrow = nrow(counts))
+    colnames(rpkm) = colnames(counts)
+    row.names(rpkm) = rownames(counts)
+    kk = which(stat$Status=="Assigned" | stat$Status== "Unassigned_NoFeatures")
+    
+    for(n in 1:ncol(counts))
+    {
+      #n = 1 
+      jj = which(colnames(stat) == colnames(counts)[n])
+      rpkm[, n] = (counts[, n])/counts.annot$Length/sum(stat[kk, jj])*10^9
+    }
+    
+    #rpkm = log2(rpkm)
+    res = data.frame(SAF, Length=counts.annot$Length[match(SAF$GeneID, counts.annot$GeneID)], 
+                     rpkm[match(SAF$GeneID, rownames(rpkm)), ], stringsAsFactors = FALSE)
+    
+  }else{
+    res = counts;
+  }
+  
+  ## save the peak information and quantified different rpkm signals within peaks
+  #write.table(res, file=paste0(DIR.res, "/rpkm_within_chipeakk.txt"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+  #save(peaks, res, file='Rdata/Peaks_merged_macs2_p_5_filtered_N2_gene_assignment_TSS_WBcel235_analysis_hisModif_tbx_signals_v1.Rdata')
+  colnames(res) = basename(bam.list)
+  return(res)
+  
+}
+
+## inputs are counts, design.matrix
+DB.analysis= function(counts, design.matrix, size.factors = NULL, batch = FALSE, Threshold.read.counts = 20, cex.pairwise = 0.01) 
+
 {
   require(lattice);
   require(ggplot2)
@@ -356,23 +468,53 @@ Assess.ChIPseq.Quality.4DB = function(dds, batch = FALSE) ### Input is DEseq2 ob
   library("pheatmap");
   library("RColorBrewer");
   library("dplyr"); 
-  library("ggplot2")
-  require(lattice);
-  #require(ggplot2)
-  cc.uniq = unique(conds);
-  cols = match(conds, cc.uniq)
+      
+  # design.matrix = design.matrix[, kk];
+  # size.factors = NULL;
+  # Threshold.read.counts = 50
   
+  design.matrix = data.frame(design.matrix)
+  if(ncol(design.matrix)==1) {
+    colnames(design.matrix) = "conds";
+    dds = DESeqDataSetFromMatrix(counts, DataFrame(design.matrix), design = ~ conds)
+    
+    conditions = design.matrix$conds; 
+    
+  }else{
+    conds = factor(paste0(colnames(design.matrix), collapse = " + "))
+    conditions = apply(design.matrix, 1, function(x) {paste0(x, collapse = "_")})
+    eval(parse(text = paste0("dds <- DESeqDataSetFromMatrix(counts, DataFrame(design.matrix), design = ~ ", conds, ")")))
+  }
+  
+  cc.uniq = unique(conditions);
+  cols = match(conditions, cc.uniq)
+  
+  # show the raw counts
+  par(cex = 1.8, las = 1, mgp = c(1.6,0.5,0), mar = c(6,16,2,0.8)+0.1, tcl = -0.3)
+  par(mfrow=c(1,1))
+  
+  total = colSums(counts(dds));
+  barplot(total/10^6, horiz = TRUE, names.arg = colnames(raw), las=1, col = cols, main='Total nb of reads quantified for features', xlab='number of reads (Million)')
+  abline(v=c(1, 2, seq(5, 20, by=5)), col='red', lty=1, lwd=2.0);#abline(v=c(20, 45), col='red', lty=1, lwd=2.0)
+    
+  # filter the lowly signal peaks
+  dds <- dds[ rowSums(counts(dds)) > Threshold.read.counts, ]
+  if(!is.null(size.factors)) {
+    sizeFactors(dds) = size.factors
+  }else{
+    dds <- estimateSizeFactors(dds)
+  }
   fpm = fpm(dds, robust = TRUE)
   vsd <- varianceStabilizingTransformation(dds, blind = FALSE)
+ 
   xx = fpm;
-  
   ### boxplot (distribution) of gene expression for each sample
   par(mfrow=c(1,1))
   par(cex = 1.0, las = 1, mgp = c(2,0.2,0), mar = c(15,3,2,0.2), tcl = -0.3)
   for(n in 1:ncol(xx)){
     kk = which(xx[,n]>0);
     if(n==1) boxplot(log2(xx[kk, n]), horizontal = FALSE, las=2, at=(n), ylim=c(-6, 23), xlim=c(0, (ncol(xx)+1)), names=as.character(colnames(xx)[n]),
-                     las=1, width=0.6, ylab='log2(fpm)', col=cols[n], main="Distribution of normalized signals (cpm)")
+                     las=1, width=0.6, ylab='log2(norm.deseq2)', col=cols[n], main="Distribution of normalized signals (deseq2)")
     else boxplot(log2(xx[kk, n]), horizontal = FALSE, las=1, add=TRUE, at=(n), names=colnames(xx)[n], width=0.6, col=cols[n])
     mtext(colnames(xx)[n], side = 1, at=n, las=2)
   }
@@ -388,11 +530,7 @@ Assess.ChIPseq.Quality.4DB = function(dds, batch = FALSE) ### Input is DEseq2 ob
   #corrplot(M, method="circle", type = 'upper', order="hclust")
   corrplot(M, method="ellipse", order="hclust", tl.cex=1.2, cl.cex=0.7, tl.col="black", addrect=ceiling(ncol(xx)/2), col=col1(100), rect.col=c('green'), rect.lwd=2.0)
   
-  library("vsn");
-  library("pheatmap");
-  library("RColorBrewer");
-  library("dplyr")
-  library("ggplot2")
+  
   #colnames(fpm) = paste(colnames(fpm), '.fpm', sep='')
   #if(nrow(dds)<1000) {vsd =  rlog(dds, blind = FALSE)
   #}else{vsd <- vst(dds, blind = FALSE)}
@@ -437,49 +575,6 @@ Assess.ChIPseq.Quality.4DB = function(dds, batch = FALSE) ### Input is DEseq2 ob
     plot(ggp);
   }
   
-  panel.cor <- function(x, y, digits=2, prefix="", cex.cor) 
-  {
-    usr <- par("usr"); on.exit(par(usr)) 
-    par(usr = c(0, 1, 0, 1)) 
-    r <- abs(cor(x, y)) 
-    txt <- format(c(r, 0.123456789), digits=digits)[1] 
-    txt <- paste(prefix, txt, sep="") 
-    if(missing(cex.cor)) cex <- 0.8/strwidth(txt) 
-    
-    test <- cor.test(x,y) 
-    # borrowed from printCoefmat
-    Signif <- symnum(test$p.value, corr = FALSE, na = FALSE, 
-                     cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
-                     symbols = c("***", "**", "*", ".", " ")) 
-    
-    text(0.5, 0.5, txt, cex = cex * r) 
-    text(.8, .8, Signif, cex=cex, col=2) 
-  }
-  
-  panel.fitting = function (x, y, bg = NA, pch = par("pch"), cex = 0.01, col='black') 
-  {
-    #x = yy[,1];y=yy[,2];
-    #kk = which(x>0 & y>0); x=x[kk];y=y[kk]
-    lims = range(c(x, y), na.rm = TRUE)
-    points(x, y, pch = 1, col = col, cex = cex, xlim=lims, ylim=lims)
-    abline(0, 1, lwd=1.0, col='red')
-    R = cor(x, y, use="na.or.complete", method='pearson')
-    text(lims[2]*0.2, lims[2]*0.9, paste0('R = ', signif(R, d=2)), cex=0.5, col='red')
-    jj = which(!is.na(x) & !is.na(y))
-    fit = lm(y[jj] ~ x[jj])
-    #slope=summary(fit)$coefficients[1]
-    slope = fit$coefficients[2]
-    intercept = fit$coefficients[1]
-    pval=summary(fit)$coefficients[4]
-    abline(intercept, slope, lwd=1.2, col='darkblue', lty=3)
-    #text(lims[2]*0.1, lims[2]*0.7, paste0('slop = ', signif(slope, d=2)), cex=1., col='blue')
-    #text(lims[2]*0.1, lims[2]*0.6, paste0('pval = ', signif(pval, d=2)), cex=1., col='blue')
-    #ok <- is.finite(x) & is.finite(y)
-    #if (any(ok)) 
-    #lines(stats::lowess(x[ok], y[ok], f = span, iter = iter), 
-    #        col = col.smooth, ...)
-  }
-  
   ###  pairwise correlation and fitting (to chek if there is batch effect)
   yy = as.matrix(fpm)
   #yy = as.matrix(assay(vsd))
@@ -487,18 +582,68 @@ Assess.ChIPseq.Quality.4DB = function(dds, batch = FALSE) ### Input is DEseq2 ob
   yy[which(yy==0)] = NA;
   yy = log2(yy)
   
-  cc.partA = c("AN312", "515D10", "515D10H3")
-  cc.partB = c("AN312", "515D10", "D10A8", "D10D8")
-  cc.partC = c("924E12", "515D10", "E12F01")
+  pairs(yy, lower.panel=NULL, upper.panel=panel.fitting)
+  #pairs(assay(vsd), lower.panel = NULL, upper.panel = panel.fitting)
   
-  kk = match(dds$conds, cc.partA); ii = which(!is.na(kk));
-  if(length(unique(dds$conds[ii]))>2) pairs(yy[, ii], lower.panel=NULL, upper.panel=panel.fitting)
+  #cc.partA = c("AN312", "515D10", "515D10H3")
+  #cc.partB = c("AN312", "515D10", "D10A8", "D10D8")
+  #cc.partC = c("924E12", "515D10", "E12F01")
   
-  kk = match(dds$conds, cc.partB); ii = which(!is.na(kk));
-  if(length(unique(dds$conds[ii]))>2) pairs(yy[, ii], lower.panel=NULL, upper.panel=panel.fitting)
+  #kk = match(dds$conds, cc.partA); ii = which(!is.na(kk));
+  #if(length(unique(dds$conds[ii]))>2) pairs(yy[, ii], lower.panel=NULL, upper.panel=panel.fitting)
   
-  kk = match(dds$conds, cc.partC); ii = which(!is.na(kk));
-  if(length(unique(dds$conds[ii]))>2) pairs(yy[, ii], lower.panel=NULL, upper.panel=panel.fitting)
+  #kk = match(dds$conds, cc.partB); ii = which(!is.na(kk));
+  #if(length(unique(dds$conds[ii]))>2) pairs(yy[, ii], lower.panel=NULL, upper.panel=panel.fitting)
+  
+  #kk = match(dds$conds, cc.partC); ii = which(!is.na(kk));
+  #if(length(unique(dds$conds[ii]))>2) pairs(yy[, ii], lower.panel=NULL, upper.panel=panel.fitting)
+  
+  
+  return(dds)
   
 }
+
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor) 
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1)) 
+  r <- abs(cor(x, y)) 
+  txt <- format(c(r, 0.123456789), digits=digits)[1] 
+  txt <- paste(prefix, txt, sep="") 
+  if(missing(cex.cor)) cex <- 0.8/strwidth(txt) 
+  
+  test <- cor.test(x,y)
+  # borrowed from printCoefmat
+  Signif <- symnum(test$p.value, corr = FALSE, na = FALSE, 
+                   cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                   symbols = c("***", "**", "*", ".", " ")) 
+  
+  text(0.5, 0.5, txt, cex = cex * r) 
+  text(.8, .8, Signif, cex=cex, col=2) 
+}
+
+panel.fitting = function (x, y, bg = NA, pch = par("pch"), cex = 0.8, col='black') 
+{
+  #x = yy[,1];y=yy[,2];
+  #kk = which(x>0 & y>0); x=x[kk];y=y[kk]
+  lims = range(c(x, y), na.rm = TRUE)
+  points(x, y, pch = 1, col = col, cex = cex, xlim=lims, ylim=lims)
+  abline(0, 1, lwd=1.0, col='red')
+  R = cor(x, y, use="na.or.complete", method='pearson')
+  text(lims[2]*0.2, lims[2]*0.9, paste0('R = ', signif(R, d=2)), cex=0.5, col='red')
+  jj = which(!is.na(x) & !is.na(y))
+  fit = lm(y[jj] ~ x[jj])
+  #slope=summary(fit)$coefficients[1]
+  slope = fit$coefficients[2]
+  intercept = fit$coefficients[1]
+  pval=summary(fit)$coefficients[4]
+  #abline(intercept, slope, lwd=1.2, col='darkblue', lty=3)
+  #text(lims[2]*0.1, lims[2]*0.7, paste0('slop = ', signif(slope, d=2)), cex=1., col='blue')
+  #text(lims[2]*0.1, lims[2]*0.6, paste0('pval = ', signif(pval, d=2)), cex=1., col='blue')
+  #ok <- is.finite(x) & is.finite(y)
+  #if (any(ok)) 
+  #lines(stats::lowess(x[ok], y[ok], f = span, iter = iter), 
+  #        col = col.smooth, ...)
+}
+
 
