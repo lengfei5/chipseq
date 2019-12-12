@@ -139,6 +139,7 @@ else
 #SBATCH -o $DIR_logs/${fname}.out
 #SBATCH -e $DIR_logs/${fname}.err
 #SBATCH --job-name $jobName
+
 module load samtools/0.1.20-foss-2018b;
 module load bowtie2/2.3.4.2-foss-2018b
 
