@@ -65,11 +65,13 @@ if [ "$genome" == "mm10" ]; then
 fi
 
 if [ "$genome" == "hg19" ]; then
-    species_macs="hs"; species_sicer="hg19";
+    species_macs="hs";
+    species_sicer="hg19";
 fi
 
 if [ "$genome" == "ce11" ]; then
-    species_macs="ce"; species_sicer="ce11";
+    species_macs="ce";
+    species_sicer="ce11";
 fi
 
 pval=0.00001; # for macs sharp
@@ -82,8 +84,9 @@ fragment_size=140;
 eff_genome_fraction=0.8;
 gap_size=
 
-mkdir -p $cwd/logs
-
+DIR_logs=$PWD/logs
+jobName='peakcalling'
+mkdir -p $DIR_logs
 
 if [ "$MACS2" == "TRUE" ]; then mkdir -p $OUT/macs2; fi;
 if [ "$MACS2_broad" == "TRUE" ]; then mkdir -p $OUT/macs2_broad; fi
@@ -92,7 +95,8 @@ if [ "$SICER" == "TRUE" ]; then mkdir -p $OUT/sicer; fi
 for sample in ${DIR_Bams}/*.bam; do
     samplename=`basename "$sample"`
     out=${samplename%.bam}
-    echo $sample  $out
+    fname=$out
+    echo $sample $out
     #inputname=`basename "$input"`
     #outname=${CONDITION}_${ID}_${INPUT} 
     #echo $outname
@@ -100,28 +104,56 @@ for sample in ${DIR_Bams}/*.bam; do
     # MACS2
     if [ "$MACS2" == "TRUE" ]; then
 	cd $OUT/macs2
-        #echo "peak calling with macs2"
-	if [ -n "$INPUT" ]; then # with input  
-	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 --call-summits" 
-	
-	else # without input
-	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 --nomodel --extsize 200 --call-summits" 
-	fi
-	cd $cwd
-    fi
-    
+    fi;
     # MACS2 broad_peaks
     if [ "$MACS2_broad" == "TRUE" ]; then
 	cd $OUT/macs2_broad
-	if [ -n "$INPUT" ]; then # with input
-	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200"
-	
-	else # without input
-	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200"
-	fi
-	cd $cwd
     fi
-           
+    
+    # creat the script for each sample
+    script=${fname}_${jobName}.sh
+    cat <<EOF > $script
+#!/usr/bin/bash
+
+#SBATCH --cpus-per-task=$nb_cores
+#SBATCH --time=120
+#SBATCH --mem=8000
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH -o $DIR_logs/${fname}.out
+#SBATCH -e $DIR_logs/${fname}.err
+#SBATCH --job-name $jobName
+
+module load samtools/0.1.20-foss-2018b;
+module load bowtie2/2.3.4.2-foss-2018b
+
+if [ "$MACS2" == "TRUE" ]; then
+   #echo "peak calling with macs2"
+if [ -n "$INPUT" ]; then # with input  
+	qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 --call-summits" 
+	
+else # without input
+	qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 --nomodel --extsize 200 --call-summits" 
+fi
+	
+fi;
+
+# MACS2 broad_peaks
+if [ "$MACS2_broad" == "TRUE" ]; then
+    if [ -n "$INPUT" ]; then # with input
+	qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200"
+	
+    else # without input
+	qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200"
+    fi
+
+fi;
+
+EOF
+    cat $script
+    sbatch $script
+    cd $cwd #back to the main working directory
+   
     # SICER (to correct) 
     if [ "$SICER" == "TRUE" ]; then
 	if [ -z "$INPUT" ]; then
@@ -164,11 +196,12 @@ for sample in ${DIR_Bams}/*.bam; do
 	    qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N sicer "module unload python; module load python/2.7.3; module load pythonlib; bash /groups/cochella/jiwang/local/SICER_V1.1/SICER/SICER.sh $OUT/sicer ${bedsample}.bed ${bedinput}.bed "." $species_sicer $redundancy_threshold $window_size $fragment_size $eff_genome_fraction $gap_size $fdr; "
 	    
 	done
+	
 	cd $cwd;
 	
     fi
     
-   # break;
+    # break;
 
 done 
 
