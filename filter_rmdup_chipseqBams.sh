@@ -1,6 +1,8 @@
 ##########################################
 # This script is to filter bam and find statistics for Bam files: 
 # number of total, mapped, unique, after duplication removed reads
+# Here the duplication removal is using picard that is taking really big memory 18-30G
+# which is a little bit weird
 #########################################
 while getopts ":hp" opts; do
     case "$opts" in
@@ -25,7 +27,7 @@ while getopts ":hp" opts; do
 done
 
 ## mm10 or ce10
-nb_cores=1
+nb_cores=4
 #blacklist="/groups/bell/jiwang/Genomes/C_elegans/ce10/ce10_blacklist/ce10-blacklist.bed" 
 MAPQ_cutoff=30
 
@@ -67,8 +69,8 @@ do
 #!/usr/bin/bash
 
 #SBATCH --cpus-per-task=$nb_cores
-#SBATCH --time=120
-#SBATCH --mem=8000
+#SBATCH --time=60
+#SBATCH --mem=30000
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH -o $DIR_logs/${fname}.out
@@ -77,15 +79,14 @@ do
 
 module load samtools/0.1.20-foss-2018b
 module load bedtools/2.25.0-foss-2018b
-#module load oracle-jdk/1.8.0_72
 module load picard/2.18.27-java-1.8
 
-## filter low quality reads 
+# filter low quality reads 
 if [ ! -e $newb.bam ]; then
    if [ $PAIRED != "TRUE" ]; then
       samtools view -q $MAPQ_cutoff -b $file | samtools sort - $newb;
    else
-	samtools view -F 1804 -q $MAPQ_cutoff -b $file | samtools sort - $newb;
+      samtools view -F 1804 -q $MAPQ_cutoff -b $file | samtools sort - $newb;
    fi  
 fi; 
 
@@ -93,22 +94,24 @@ if [ ! -e $newb.bam.bai ]; then
    samtools index $newb.bam; 
 fi;
 
-## remove duplicates 
-if [ ! -e $newbb.bam ]; then 
-   #samtools rmdup -s $newb.bam $newbb.bam;
-   java -jar \$EBROOTPICARD/picard.jar MarkDuplicates INPUT=$newb.bam OUTPUT=$newbb.bam METRICS_FILE=$picardDup_QC ASSUME_SORTED=true REMOVE_DUPLICATES=true
+# remove duplicates 
+if [ ! -e $newbb.bam ]; then
+   java -jar \$EBROOTPICARD/picard.jar MarkDuplicates INPUT=$newb.bam OUTPUT=$newbb.bam METRICS_FILE=$picardDup_QC \
+ASSUME_SORTED=true REMOVE_DUPLICATES=true SORTING_COLLECTION_SIZE_RATIO=0.2 MAX_RECORDS_IN_RAM=250000 
 fi;
- 
+
 if [ ! -e $newbb.bam.bai ]; then 
    samtools index $newbb.bam; 
 fi;
 
-## save statistical number for each bam 
+echo 'done duplication removal...'
+
+## save statistical number for each bam'
 total=\$(samtools view -c $file); 
 mapped=\$(samtools view -c -F 4 $file); 
 unique=\$(samtools view -c $newb.bam); 
 rmdup=\$(samtools view -c $newbb.bam); 
-echo "\$ff \$total \$mapped \$unique \$rmdup\"|tr ' ' '\t' > $stat 
+echo \"$ff \$total \$mapped \$unique \$rmdup\"|tr ' ' '\t' > $stat 
 
 EOF
     cat $script
