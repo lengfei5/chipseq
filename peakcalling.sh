@@ -105,6 +105,7 @@ for sample in ${DIR_Bams}/*.bam; do
     if [ "$MACS2" == "TRUE" ]; then
 	cd $OUT/macs2
     fi;
+    
     # MACS2 broad_peaks
     if [ "$MACS2_broad" == "TRUE" ]; then
 	cd $OUT/macs2_broad
@@ -124,37 +125,38 @@ for sample in ${DIR_Bams}/*.bam; do
 #SBATCH -e $DIR_logs/${fname}.err
 #SBATCH --job-name $jobName
 
-module load samtools/0.1.20-foss-2018b;
-module load bowtie2/2.3.4.2-foss-2018b
+module load macs2/2.1.2.1-foss-2018b-python-2.7.15;
 
 if [ "$MACS2" == "TRUE" ]; then
    #echo "peak calling with macs2"
-if [ -n "$INPUT" ]; then # with input  
-	qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 --call-summits" 
-	
-else # without input
-	qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2 "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_pval_${pval} -f BAM -g $species_macs -p $pval --fix-bimodal -m 5 100 --nomodel --extsize 200 --call-summits" 
-fi
+   if [ -n "$INPUT" ]; then # with input
+      macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_pval_${pval} -f BAM \
+-g $species_macs -p $pval --fix-bimodal -m 5 100 --call-summits
+   else # without input
+      macs2 callpeak -t $sample -n ${out}_macs2_pval_${pval} -f BAM \
+-g $species_macs -p $pval --fix-bimodal -m 5 100 --nomodel --extsize 200 --call-summits
+      
+   fi
 	
 fi;
 
 # MACS2 broad_peaks
 if [ "$MACS2_broad" == "TRUE" ]; then
     if [ -n "$INPUT" ]; then # with input
-	qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200"
-	
+       macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200
     else # without input
-	qsub -q public.q -o $cwd/logs -j yes -pe smp $nb_cores -cwd -b y -shell y -N macs2_broad "module load macs/2.1.0; macs2 callpeak -t $sample -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200"
+    macs2 callpeak -t $sample -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200
     fi
 
 fi;
 
 EOF
     cat $script
-    sbatch $script
+    #sbatch $script
     cd $cwd #back to the main working directory
-   
-    # SICER (to correct) 
+    break;
+    
+    # SICER (to correct and adapt for cbe) 
     if [ "$SICER" == "TRUE" ]; then
 	if [ -z "$INPUT" ]; then
 	    echo '--INPUT is required--'
