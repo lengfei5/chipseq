@@ -93,7 +93,7 @@ if [ "$PAIRED" != "TRUE" ]; then
 #!/usr/bin/bash	
 
 #SBATCH --cpus-per-task=$nb_cores
-#SBATCH --time=120
+#SBATCH --time=06:00:00
 #SBATCH --mem=8000
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
@@ -132,8 +132,8 @@ else
 #!/usr/bin/bash	
 
 #SBATCH --cpus-per-task=$nb_cores
-#SBATCH --time=120
-#SBATCH --mem=8000
+#SBATCH --time=06:00:00
+#SBATCH --mem=12000
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH -o $DIR_logs/${fname}.out
