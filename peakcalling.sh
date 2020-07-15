@@ -139,7 +139,7 @@ EOF
 	fi
 	
     fi;
-
+    
     # MACS2 broad_peaks
     if [ "$MACS2_broad" == "TRUE" ]; then
 	if [ -n "$INPUT" ]; then # with input
@@ -159,10 +159,10 @@ EOF
     cat $script
 
     sbatch $script
-
+    
     cd $cwd #back to the main working directory
     
-    break;
+    #break;
     
 done 
 
