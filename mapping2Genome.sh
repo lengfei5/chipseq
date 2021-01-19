@@ -5,7 +5,7 @@ while getopts ":hg:pc:" opts; do
     case "$opts" in
         "h") 
 	    echo "script to map fastq or fq to the genome using bowite2"
-	    echo "available genomes: ce10, ce11, mm10, mm9, hg19 and mm9_G11D (mm9 genome with G11 reporter) "
+	    echo "available genomes: am6,  ce10, ce11, mm10, mm9, hg19 and mm9_G11D (mm9 genome with G11 reporter) "
 	    echo "Usage: "
 	    echo "$0 -g ce11 -c 4 (single_end fastq aligned to ce11 and 2 cpus required)"
 	    echo "$0 -g mm10 -c 8 (single_end fastq aligned to mm10 and 8 cpus required)"
@@ -31,7 +31,14 @@ while getopts ":hg:pc:" opts; do
 done
 
 ## select the indexed genome
-case "$genome" in 
+case "$genome" in
+    "am6")
+	echo 'align to am6'
+	Genome="/groups/tanaka/Databases/Bowtie2/Am_genome/AmexG_v6.0-DD"
+	memory=64G
+	nb_cores=8;
+	;;
+	
     "ce10")
 	echo "align to ce10 "
 	Genome="/groups/bell/jiwang/Genomes/C_elegans/ce10/ce10_index_4Bowtie/ce10"
@@ -45,11 +52,13 @@ case "$genome" in
 	echo "align to mm9"
 	Genome="/groups/bell/jiwang/Genomes/Mouse/mm9_UCSC/mm9_index_4Bowtie/mm9"
 	;;
+    
     "mm10")
 	echo "alignment to mm10"
 	Genome="/groups/bell/jiwang/Genomes/Mouse/mm10_UCSC/mm10_index_4Bowtie/mm10"
 	;;
-    "mm9_G11D")
+    
+    "mm10D")
 	echo "align to customized mm9_G11D"
 	Genome="/groups/bell/jiwang/Genomes/Mouse/mm9_UCSC_G11D_reproter/mm9_G11D_index/mm9_G11D"
 	;;
@@ -65,9 +74,15 @@ case "$genome" in
 	;;
 esac
 
+# set slumr params
 if [ -z "$nb_cores" ]; then
     nb_cores=4
 fi
+
+if [ -z "$memory" ]; then
+    memory=12G
+fi
+
 
 DIR_input="${PWD}/ngs_raw/FASTQs"
 DIR_output="${PWD}/alignments/BAMs_All"
@@ -93,8 +108,8 @@ if [ "$PAIRED" != "TRUE" ]; then
 #!/usr/bin/bash	
 
 #SBATCH --cpus-per-task=$nb_cores
-#SBATCH --time=06:00:00
-#SBATCH --mem=8000
+#SBATCH --time=08:00:00
+#SBATCH --mem=$memory
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH -o $DIR_logs/${fname}.out
@@ -112,16 +127,17 @@ EOF
 	fi
     done
 else
-    echo "paired_end fastq ..."
-    
+    #echo "paired_end fastq ..."
     for seq1 in `ls ${DIR_input}/*.fastq |grep R1 `;
     do
 	fname="$(basename $seq1)"
         SUFFIX=${fname#*_R1}
 	fname=${fname%_R1*}
-	echo $SUFFIX;
-	echo $fname;
+	#echo $SUFFIX;
+	#echo $fname;
 	seq2=${DIR_input}/${fname}_R2${SUFFIX};
+
+	echo 'paired_end sample '
 	echo $seq1 
 	echo $seq2
 	
@@ -132,8 +148,8 @@ else
 #!/usr/bin/bash	
 
 #SBATCH --cpus-per-task=$nb_cores
-#SBATCH --time=06:00:00
-#SBATCH --mem=12000
+#SBATCH --time=08:00:00
+#SBATCH --mem=$memory
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH -o $DIR_logs/${fname}.out
@@ -141,16 +157,25 @@ else
 #SBATCH --job-name $jobName
 
 module load samtools/0.1.20-foss-2018b;
-module load bowtie2/2.3.4.2-foss-2018b
+#module load bowtie2/2.3.4.2-foss-2018b
+ml load bowtie2/2.3.5.1-foss-2018b
 
 bowtie2 -q -p $nb_cores --no-mixed -X 2000 -x $Genome -1 $seq1 -2 $seq2  | samtools view -bSu - | \
-samtools sort - ${DIR_output}/$fname; 
-samtools index ${DIR_output}/$fname.bam;
+samtools sort - ${DIR_output}/$fname;
+ 
+samtools index -c ${DIR_output}/$fname.bam;
 
 EOF
 	    cat $script
 	    sbatch $script
-
+	    #break;
+	    
 	fi
+	
+	break;
+	
     done
+    
+    #break;
+    
 fi;
