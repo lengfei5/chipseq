@@ -34,7 +34,7 @@ done
 case "$genome" in
     "am6")
 	echo 'align to am6'
-	Genome="/groups/tanaka/Databases/Bowtie2/Am_genome/AmexG_v6.0-DD"
+	Genome="/groups/tanaka/People/current/jiwang/Genomes/axolotl/Bowtie2/am6/AmexG_v6.DD.corrected.round2.chr"
 	memory=64G
 	nb_cores=8;
 	;;
@@ -175,7 +175,5 @@ EOF
 	break;
 	
     done
-    
-    #break;
     
 fi;
