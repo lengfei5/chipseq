@@ -36,7 +36,7 @@ case "$genome" in
 	echo 'align to am6'
 	Genome="/groups/tanaka/People/current/jiwang/Genomes/axolotl/Bowtie2/am6/AmexG_v6.DD.corrected.round2.chr"
 	memory=64G
-	nb_cores=8;
+	nb_cores=10;
 	;;
 	
     "ce10")
@@ -128,19 +128,20 @@ EOF
     done
 else
     #echo "paired_end fastq ..."
-    for seq1 in `ls ${DIR_input}/*.fastq |grep R1 `;
+    for seq1 in `ls ${DIR_input}/*.fastq |grep R1`;
     do
 	fname="$(basename $seq1)"
         SUFFIX=${fname#*_R1}
 	fname=${fname%_R1*}
-	#echo $SUFFIX;
-	#echo $fname;
+	
 	seq2=${DIR_input}/${fname}_R2${SUFFIX};
-
-	echo 'paired_end sample '
+	
+	echo '-- paired_end sample -- '
+	echo $SUFFIX;
+	echo $fname;
 	echo $seq1 
 	echo $seq2
-	
+	echo '--------'
 	if [ ! -e "${DIR_output}/$fname.bam" ]; then
 	    # creat the script for each sample
 	    script=$DIR_logs/${fname}_${jobName}.sh
@@ -166,13 +167,12 @@ samtools sort - ${DIR_output}/$fname;
 samtools index -c ${DIR_output}/$fname.bam;
 
 EOF
-	    cat $script
-	    sbatch $script
-	    #break;
-	    
+	    #cat $script
+	    #sbatch $script
+	   
 	fi
 	
-	break;
+	#break;
 	
     done
     
