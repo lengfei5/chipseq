@@ -35,8 +35,8 @@ case "$genome" in
     "am6")
 	echo 'align to am6'
 	Genome="/groups/tanaka/People/current/jiwang/Genomes/axolotl/Bowtie2/am6/AmexG_v6.DD.corrected.round2.chr"
-	memory=64G
-	nb_cores=10;
+	memory=80G
+	nb_cores=30;
 	;;
 	
     "ce10")
@@ -115,8 +115,10 @@ if [ "$PAIRED" != "TRUE" ]; then
 #SBATCH -o $DIR_logs/${fname}.out
 #SBATCH -e $DIR_logs/${fname}.err
 #SBATCH --job-name $jobName
+
 module load samtools/0.1.20-foss-2018b
-module bowtie2/2.3.4.2-foss-2018b
+ml load samtools/1.9-foss-2018b
+#module bowtie2/2.3.4.2-foss-2018b
 bowtie2 -q -p $nb_cores -x $Genome -U $file | samtools view -bSu - | samtools sort - ${DIR_output}/${fname}; 
 samtools index ${DIR_output}/${fname}.bam;
 
@@ -126,9 +128,10 @@ EOF
 	    
 	fi
     done
+    
 else
-    #echo "paired_end fastq ..."
-    for seq1 in `ls ${DIR_input}/*.fastq |grep R1`;
+    
+    for seq1 in `ls ${DIR_input}/*.fastq | grep "_R1"`;
     do
 	fname="$(basename $seq1)"
         SUFFIX=${fname#*_R1}
@@ -137,8 +140,8 @@ else
 	seq2=${DIR_input}/${fname}_R2${SUFFIX};
 	
 	echo '-- paired_end sample -- '
-	echo $SUFFIX;
-	echo $fname;
+	#echo $SUFFIX;
+	#echo $fname;
 	echo $seq1 
 	echo $seq2
 	echo '--------'
@@ -149,7 +152,9 @@ else
 #!/usr/bin/bash	
 
 #SBATCH --cpus-per-task=$nb_cores
-#SBATCH --time=08:00:00
+#SBATCH --qos=medium
+#SBATCH --time=0-20:00:00
+#SBATCH --partition=c
 #SBATCH --mem=$memory
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
@@ -160,15 +165,18 @@ else
 module load samtools/0.1.20-foss-2018b;
 #module load bowtie2/2.3.4.2-foss-2018b
 ml load bowtie2/2.3.5.1-foss-2018b
+#ml load samtools/1.9-foss-2018b
+ml load biobambam2/2.0.87-foss-2018b
 
-bowtie2 -q -p $nb_cores --no-mixed -X 2000 -x $Genome -1 $seq1 -2 $seq2  | samtools view -bSu - | \
-samtools sort - ${DIR_output}/$fname;
- 
-samtools index -c ${DIR_output}/$fname.bam;
+bowtie2 -q -p $nb_cores --no-mixed -X 2000 -x $Genome -1 $seq1 -2 $seq2 | samtools view -bSu - | \
+samtools sort - ${DIR_output}/${fname};
+
+#samtools index -c ${DIR_output}/${fname}.bam;
+bamsort SO=coordinate index=1 indexfilename=${DIR_output}/${fname}.sorted.bam.bai < ${DIR_output}/${fname}.bam > ${DIR_output}/${fname}.sorted.bam
 
 EOF
-	    #cat $script
-	    #sbatch $script
+	    cat $script
+	    sbatch $script
 	   
 	fi
 	
