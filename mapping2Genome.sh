@@ -35,8 +35,8 @@ case "$genome" in
     "am6")
 	echo 'align to am6'
 	Genome="/groups/tanaka/People/current/jiwang/Genomes/axolotl/Bowtie2/am6/AmexG_v6.DD.corrected.round2.chr"
-	memory=80G
-	nb_cores=30;
+	memory=64G
+	nb_cores=32;
 	;;
 	
     "ce10")
@@ -172,7 +172,7 @@ bowtie2 -q -p $nb_cores --no-mixed -X 2000 -x $Genome -1 $seq1 -2 $seq2 | samtoo
 samtools sort - ${DIR_output}/${fname};
 
 #samtools index -c ${DIR_output}/${fname}.bam;
-bamsort SO=coordinate index=1 indexfilename=${DIR_output}/${fname}.sorted.bam.bai < ${DIR_output}/${fname}.bam > ${DIR_output}/${fname}.sorted.bam
+
 
 EOF
 	    cat $script
