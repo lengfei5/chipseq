@@ -36,89 +36,105 @@ nb_cores=8
 MAPQ_cutoff=30
 
 DIR_input="${PWD}/alignments/BAMs_All"
-DIR_uniq="${PWD}/alignments/BAMs_unique"
-DIR_uniq_rmdup="${PWD}/alignments/BAMs_unique_rmdup"
-DIR_stat="${PWD}/QCs/ALL/BamStat"
+
+DIR_rmdup="${PWD}/alignments/BAMs_rmdup"
+DIR_rmdup_uniq="${PWD}/alignments/BAMs_rmdup_uniq"
+DIR_stat="${PWD}/QCs/BamStat"
 DIR_logs=${PWD}/logs
 
 mkdir -p $DIR_logs
-mkdir -p $DIR_uniq
-mkdir -p $DIR_uniq_rmdup
+mkdir -p $DIR_rmdup
+mkdir -p $DIR_rmdup_uniq
 mkdir -p $DIR_stat
 mkdir -p $DIR_stat/logs
 
-jobName='bamFiltering'
+jobName='bam_rmdup_filter'
 #picardPath=$EBROOTPICARD
-echo $picardPath
-for file in ${DIR_input}/*.bam;
+#echo $picardPath
+
+#for file in ${DIR_input}/*.bam
+for file in ${DIR_input}/Embryo_Stage44_distal_93323_sorted.bam
 do
     echo $file
     ff="$(basename $file)"
     ff="${ff%.bam}"
     fname=$ff;
     
-    #newb="${newb%.bam}_filter"
     #echo $newb
-    newb=$DIR_uniq/${ff}_uniq
-    newbb=$DIR_uniq_rmdup/${ff}_uniq_rmdup
-    stat=$DIR_stat/${ff}.txt
+    newb=$DIR_rmdup/${ff}_rmdup
+    newbb=$DIR_rmdup_uniq/${ff}_rmdup_uniq
+    stat=${DIR_stat}/${ff}_stat.txt
+    insertion_size=${DIR_stat}/${ff}_insertion.size
+    
     #echo $newb 
     #echo $newbb 
     #echo $stat
-    picardDup_QC=${DIR_stat}/${ff}_picardDup.qc.txt
-
+    #picardDup_QC=${DIR_stat}/${ff}_picardDup.qc.txt
+    
     # creat the script for each sample
     script=$DIR_logs/${fname}_${jobName}.sh
     cat <<EOF > $script
 #!/usr/bin/bash
 
 #SBATCH --cpus-per-task=$nb_cores
-#SBATCH --time=60
-#SBATCH --mem=30000
+#SBATCH --time=300
+#SBATCH --mem=20000
+
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH -o $DIR_logs/${fname}.out
 #SBATCH -e $DIR_logs/${fname}.err
 #SBATCH --job-name $jobName
 
-module load samtools/0.1.20-foss-2018b
-module load bedtools/2.25.0-foss-2018b
-module load picard/2.18.27-java-1.8
+module load samtools/1.10-foss-2018b
+# module load picard/2.18.27-java-1.8
 
-# filter low quality reads 
-if [ ! -e $newb.bam ]; then
-   if [ $PAIRED != "TRUE" ]; then
-      samtools view -q $MAPQ_cutoff -b $file | samtools sort - $newb;
-   else
-      samtools view -F 1804 -q $MAPQ_cutoff -b $file | samtools sort - $newb;
-   fi  
-fi; 
+# filter low quality reads
+#if [ $PAIRED != "TRUE" ]; then
+#      samtools view -h -q $MAPQ_cutoff -b $file | samtools sort - $newb;
+#   else
+#      samtools view -h -F 1804 -q $MAPQ_cutoff -b $file | samtools sort - $newb;
+      #samtools view -h -q 30 ${sample}.bam > ${sample}.rmMulti.bam
+#fi  
+samtools view -h -q 30 ${newb}.bam > ${newbb}.unsorted.bam
+samtools sort -@ $nb_cores -o ${newbb}.bam ${newbb}.unsorted.bam
+samtools index -c -m 14 ${newbb}.bam 
 
-if [ ! -e $newb.bam.bai ]; then 
-   samtools index $newb.bam; 
-fi;
 
 # remove duplicates 
-if [ ! -e $newbb.bam ]; then
-   java -jar \$EBROOTPICARD/picard.jar MarkDuplicates INPUT=$newb.bam OUTPUT=$newbb.bam METRICS_FILE=$picardDup_QC \
-ASSUME_SORTED=true REMOVE_DUPLICATES=true SORTING_COLLECTION_SIZE_RATIO=0.2 MAX_RECORDS_IN_RAM=250000 
-fi;
+#if [ ! -e $newbb.bam ]; then
+#   #java -jar \$EBROOTPICARD/picard.jar MarkDuplicates INPUT=$newb.bam OUTPUT=$newbb.bam METRICS_FILE=$picardDup_QC \
+#ASSUME_SORTED=true REMOVE_DUPLICATES=true SORTING_COLLECTION_SIZE_RATIO=0.2 MAX_RECORDS_IN_RAM=250000
+#fi;
 
-if [ ! -e $newbb.bam.bai ]; then 
-   samtools index $newbb.bam; 
-fi;
+#if [ ! -e $newbb.bam.bai ]; then 
+#   samtools index $newbb.bam; 
+#fi;
+samtools sort -@ $nb_cores -n -o ${newb}_sorted.by.name.bam $file
+samtools fixmate -@ $nb_cores -m ${newb}_sorted.by.name.bam ${newb}_fixmate.bam
+samtools sort -@ $nb_cores -o ${newb}_positionsort.bam ${newb}_fixmate.bam  
+samtools markdup -r ${newb}_positionsort.bam ${newb}.bam
+
+#rm ${newb}_fixmate.bam
+#rm ${newb}_positionsort.bam
 
 echo 'done duplication removal...'
 
-## save statistical number for each bam'
-total=\$(samtools view -c $file); 
-mapped=\$(samtools view -c -F 4 $file); 
-unique=\$(samtools view -c $newb.bam); 
-rmdup=\$(samtools view -c $newbb.bam); 
-echo \"$ff \$total \$mapped \$unique \$rmdup\"|tr ' ' '\t' > $stat 
+
+# save statistical number for each bam'
+echo 'sample total mapped rmdup rmdup_uniq' |tr ' ' '\t' > $stat 
+total=\$(samtools view -@ $nb_cores -c $file); 
+mapped=\$(samtools view -@ $nb_cores -c -F 4 $file); 
+rmdup=\$(samtools view -@ $nb_cores -c $newb.bam); 
+rmdup_uniq=\$(samtools view -@ $nb_cores -c $newbb.bam); 
+echo $ff \$total \$mapped \$rmdup \$rmdup_uniq|tr ' ' '\t' >> $stat 
+
+samtools stat -@ $nb_cores ${file} | grep ^IS | cut -f 2- > ${insertion_size}.txt
+samtools stat -@ $nb_cores ${newb}.bam | grep ^IS | cut -f 2- > ${insertion_size}_rmdup.txt
 
 EOF
     cat $script
     sbatch $script
-    #break; 
+    #break;
+    
 done
