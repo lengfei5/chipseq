@@ -3,12 +3,16 @@
 # number of total, mapped, unique, after duplication removed reads
 # Here the duplication removal is using picard that is taking really big memory 18-30G
 # which is a little bit weird
+# to adapt the script for axolotl genome, the duplication removal is done by samtools tools
+# > samtools/1.10-foss-2018b in which the samtools index works
+# 
 #########################################
 while getopts ":hp" opts; do
     case "$opts" in
         "h")
 	    echo "script to filter low quality mapped reads, remove duplicates for bams files for chip-seq or alike data (e.g. atac-seq)"
-            echo "old version used samtools to remove duplicates; and the current version is using PICARD;"
+            echo "old version used samtools to remove duplicates; and the current version is using PICARD"
+	    echo 'lastest version employed samtools again, becasue PICARD does not work for axolotl genome'
 	    echo "Usage:"
 	    echo "$0 (single_end bam)"
             echo "$0 -p (paired_end bam)"
