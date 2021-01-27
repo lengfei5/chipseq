@@ -30,8 +30,8 @@ while getopts ":hp" opts; do
     esac
 done
 
+nb_cores=8
 ## mm10 or ce10
-nb_cores=4
 #blacklist="/groups/bell/jiwang/Genomes/C_elegans/ce10/ce10_blacklist/ce10-blacklist.bed" 
 MAPQ_cutoff=30
 
