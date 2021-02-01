@@ -89,8 +89,7 @@ do
 #SBATCH --job-name $jobName
 
 module load samtools/1.10-foss-2018b
-# module load picard/2.18.27-java-1.8
-
+ml load picard/2.20.6--0-biocontainers
 # filter low quality reads
 #if [ $PAIRED != "TRUE" ]; then
 #      samtools view -h -q $MAPQ_cutoff -b $file | samtools sort - $newb;
@@ -105,21 +104,15 @@ samtools index -c -m 14 ${newb}.bam
 rm ${newb}.unsorted.bam
 
 # remove duplicates 
-#if [ ! -e $newbb.bam ]; then
-#   #java -jar \$EBROOTPICARD/picard.jar MarkDuplicates INPUT=$newb.bam OUTPUT=$newbb.bam METRICS_FILE=$picardDup_QC \
-#ASSUME_SORTED=true REMOVE_DUPLICATES=true SORTING_COLLECTION_SIZE_RATIO=0.2 MAX_RECORDS_IN_RAM=250000
-#fi;
-#if [ ! -e $newbb.bam.bai ]; then 
-#   samtools index $newbb.bam; 
-#fi;
+if [ ! -e $newbb.bam ]; then
+   picard MarkDuplicates INPUT=$newb.bam OUTPUT=${newbb}.unsorted.bam METRICS_FILE=$picardDup_QC \
+ASSUME_SORTED=true REMOVE_DUPLICATES=true SORTING_COLLECTION_SIZE_RATIO=0.2
+fi;
 
-samtools sort -@ $nb_cores -n -o ${newbb}_sorted.by.name.bam ${newb}.bam
-samtools fixmate -@ $nb_cores -m ${newbb}_sorted.by.name.bam ${newbb}_fixmate.bam
-samtools sort -@ $nb_cores -o ${newbb}_positionsort.bam ${newbb}_fixmate.bam  
-samtools markdup -r ${newbb}_positionsort.bam ${newbb}.bam
-rm ${newbb}_sorted.by.name.bam
-rm ${newbb}_fixmate.bam
-rm ${newbb}_positionsort.bam
+if [ ! -e $newbb.bam.bai ]; then
+   samtools sort -@ $nb_cores -o ${newbb}.bam ${newbb}.unsorted.bam
+   samtools index -c -m 14 $newbb.bam;
+fi;
 
 echo 'done duplication removal...'
 

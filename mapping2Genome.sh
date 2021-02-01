@@ -118,7 +118,7 @@ if [ "$PAIRED" != "TRUE" ]; then
 
 module load samtools/0.1.20-foss-2018b
 ml load samtools/1.9-foss-2018b
-#module bowtie2/2.3.4.2-foss-2018b
+module bowtie2/2.3.4.2-foss-2018b
 bowtie2 -q -p $nb_cores -x $Genome -U $file | samtools view -bSu - | samtools sort - ${DIR_output}/${fname}; 
 samtools index ${DIR_output}/${fname}.bam;
 
@@ -168,7 +168,8 @@ ml load bowtie2/2.3.5.1-foss-2018b
 #ml load samtools/1.9-foss-2018b
 ml load biobambam2/2.0.87-foss-2018b
 
-bowtie2 -q -p $nb_cores --no-mixed -X 2000 -x $Genome -1 $seq1 -2 $seq2 | samtools view -bSu - | \
+bowtie2 -q -p $nb_cores --no-mixed -X 2000 --dovetail --no-discordant -x $Genome -1 $seq1 -2 $seq2 | \
+samtools view -bSu - | \
 samtools sort - ${DIR_output}/${fname};
 
 #samtools index -c ${DIR_output}/${fname}.bam;
