@@ -48,8 +48,9 @@ while getopts ":hD:I:mbg:" opts; do
     esac
 done
 
-OUT=$PWD/Peaks
-nb_cores=4;
+OUT=$PWD/calledPeaks
+
+nb_cores=16;
 cwd=`pwd`;
 
 if [ -z "$DIR_Bams" ]; then
@@ -57,8 +58,7 @@ if [ -z "$DIR_Bams" ]; then
 fi
 
 if [ "$genome" == "mm10" ]; then
-    species_macs="mm";
-    species_sicer="mm10";
+    species_macs="mm"
     chromSize="/groups/bell/jiwang/Genomes/Mouse/mm10_UCSC/Sequence/mm10_chrom_sizes.sizes"
 fi
 
@@ -81,15 +81,13 @@ mkdir -p $DIR_logs
 
 if [ "$MACS2" == "TRUE" ]; then mkdir -p $OUT/macs2; fi;
 if [ "$MACS2_broad" == "TRUE" ]; then mkdir -p $OUT/macs2_broad; fi
-if [ "$SICER" == "TRUE" ]; then mkdir -p $OUT/sicer; fi
 
 for sample in ${DIR_Bams}/*.bam; do
     samplename=`basename "$sample"`
     out=${samplename%.bam}
     fname=$out
     echo $sample $out
-    #inputname=`basename "$input"`
-    #outname=${CONDITION}_${ID}_${INPUT} 
+    
     #echo $outname
         
     # MACS2
@@ -162,7 +160,7 @@ EOF
     
     cd $cwd #back to the main working directory
     
-    #break;
+    break;
     
 done 
 
