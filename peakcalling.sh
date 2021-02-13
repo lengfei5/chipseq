@@ -31,10 +31,12 @@ while getopts ":hD:I:mbg:" opts; do
 	"m")
 	    MACS2="TRUE"
 	    ;;
+	"f")
+	    format="$OPTARG";
+	    ;;
 	"b")
 	    MACS2_broad="TRUE"
 	    ;;
-	
 	"g")
 	    genome="$OPTARG";
 	    ;;
@@ -50,12 +52,17 @@ done
 
 OUT=$PWD/calledPeaks
 
-nb_cores=16;
+nb_cores=8;
 cwd=`pwd`;
 
 if [ -z "$DIR_Bams" ]; then
     DIR_Bams="$PWD/alignments/BAMs_All"
 fi
+
+if [ -z "$format" ]; then
+    format=BAM
+fi
+
 
 if [ "$genome" == "mm10" ]; then
     species_macs="mm"
@@ -78,6 +85,9 @@ fdr=0.05; # for macs broad and sicer
 DIR_logs=$PWD/logs
 jobName='macs2'
 mkdir -p $DIR_logs
+mkdir -p $OUT
+
+echo $MACS2
 
 if [ "$MACS2" == "TRUE" ]; then mkdir -p $OUT/macs2; fi;
 if [ "$MACS2_broad" == "TRUE" ]; then mkdir -p $OUT/macs2_broad; fi
@@ -106,15 +116,15 @@ for sample in ${DIR_Bams}/*.bam; do
 #!/usr/bin/bash
 
 #SBATCH --cpus-per-task=$nb_cores
-#SBATCH --time=360
-#SBATCH --mem=8000
+#SBATCH --time=480
+#SBATCH --mem=16G
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH -o $DIR_logs/${fname}.out
 #SBATCH -e $DIR_logs/${fname}.err
 #SBATCH --job-name $jobName
 
-module load macs2/2.1.2.1-foss-2018b-python-2.7.15;
+module load macs2/2.2.5-foss-2018b-python-3.6.6
 
 EOF
     
@@ -129,9 +139,9 @@ EOF
 	
 	else # without input
 	    cat <<EOF >> $script
-macs2 callpeak -t $sample -n ${out}_macs2 -f BAM \
--g $species_macs --nomodel --shift -100 --extsize 200
-      
+#macs2 callpeak -t $sample -n ${out}_macs2 -f $format -g $species_macs --nomodel --shift -100 --extsize 200
+macs2 callpeak -t $sample -n ${out}_macs2 -f BAMPE -g 30000000000
+
 EOF
 	
 	fi
@@ -160,7 +170,7 @@ EOF
     
     cd $cwd #back to the main working directory
     
-    break;
+    #break;
     
 done 
 
