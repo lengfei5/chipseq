@@ -140,7 +140,7 @@ EOF
 	else # without input
 	    cat <<EOF >> $script
 #macs2 callpeak -t $sample -n ${out}_macs2 -f $format -g $species_macs --nomodel --shift -100 --extsize 200
-macs2 callpeak -t $sample -n ${out}_macs2 -f BAMPE -g 30000000000
+macs2 callpeak -t $sample -n ${out}_macs2 -f BAMPE -g 30000000000 -p 0.001
 
 EOF
 	
