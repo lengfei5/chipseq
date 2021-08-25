@@ -76,11 +76,11 @@ esac
 
 # set slumr params
 if [ -z "$nb_cores" ]; then
-    nb_cores=4
+    nb_cores=8
 fi
 
 if [ -z "$memory" ]; then
-    memory=12G
+    memory=16G
 fi
 
 
@@ -124,7 +124,7 @@ samtools index ${DIR_output}/${fname}.bam;
 
 EOF
 	    cat $script
-	    #sbatch $script
+	    sbatch $script
 	    
 	fi
     done
