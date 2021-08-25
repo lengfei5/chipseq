@@ -55,7 +55,7 @@ case "$genome" in
     
     "mm10")
 	echo "alignment to mm10"
-	Genome="/groups/bell/jiwang/Genomes/Mouse/mm10_UCSC/mm10_index_4Bowtie/mm10"
+	Genome="/groups/tanaka/People/current/jiwang/Genomes/mouse/mm10_UCSC/mm10_index_4Bowtie"
 	;;
     
     "mm10D")
