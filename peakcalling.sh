@@ -11,7 +11,7 @@ while getopts ":hD:I:mbg:" opts; do
 	    echo "-D  (specfiy the ABSOLUTE directory of bam files or by default alignments/BAMs_All)"
 	    echo "-I (input, e.g. /groups/bell/jiwang/Projects/Jorge/Analysis_ChIP_seq/INPUT/merged_Input_49475_49911_49908.bam for mouse mm10)" 
 	    echo "no input file needed by defaut"
-            echo "-g (genome, i.e. mm10, ce11, hg19)"
+            echo "-g (genome, i.e. mm10, ce11, hg19, am6)"
 	    echo "-m (macs2 sharp peaks)"
 	    echo "-b (macs2 broad peaks)"
 	    
@@ -63,6 +63,11 @@ if [ -z "$format" ]; then
     format=BAM
 fi
 
+if [ -z "$genome" ]; then
+    echo "genome argument requried. ce11, mm10, hg19, am6"
+    exit 1;
+    
+fi
 
 if [ "$genome" == "mm10" ]; then
     species_macs="mm"
@@ -136,15 +141,18 @@ macs2 callpeak -t $sample -c $INPUT -n ${out}_macs2_pval_${pval} -f BAM \
 -g $species_macs -p $pval --fix-bimodal -m 5 100 --call-summits
 
 EOF
-	
-	else # without input
-	    cat <<EOF >> $script
-#macs2 callpeak -t $sample -n ${out}_macs2 -f $format -g $species_macs --nomodel --shift -100 --extsize 200
-macs2 callpeak -t $sample -n ${out}_macs2 -f BAMPE -g 30000000000 -p 0.001
 
+	# without input
+	elif [ "$genome" == "am6" ]; then # axololt
+	    cat <<EOF >> $script
+	    macs2 callpeak -t $sample -n ${out}_macs2 -f BAMPE -g 30000000000 -p 0.001 	    
 EOF
-	
-	fi
+
+	else 
+	    cat <<EOF >> $script
+	    macs2 callpeak -t $sample -n ${out}_macs2 -f $format -g $species_macs --nomodel --shift -100 --extsize 200	    
+EOF
+	fi;
 	
     fi;
     
@@ -163,9 +171,9 @@ EOF
 	fi
 
     fi;
+    
 
     cat $script
-
     sbatch $script
     
     cd $cwd #back to the main working directory
