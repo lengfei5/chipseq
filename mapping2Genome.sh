@@ -55,7 +55,7 @@ case "$genome" in
     
     "mm10")
 	echo "alignment to mm10"
-	Genome="/groups/tanaka/People/current/jiwang/Genomes/mouse/mm10_UCSC/mm10_index_4Bowtie"
+	Genome="/groups/tanaka/People/current/jiwang/Genomes/mouse/mm10_UCSC/mm10_index_4Bowtie/mm10"
 	;;
     
     "mm10D")
@@ -116,9 +116,8 @@ if [ "$PAIRED" != "TRUE" ]; then
 #SBATCH -e $DIR_logs/${fname}.err
 #SBATCH --job-name $jobName
 
-module load samtools/0.1.20-foss-2018b
-ml load samtools/1.9-foss-2018b
-module bowtie2/2.3.4.2-foss-2018b
+ml load samtools/0.1.20-foss-2018b
+ml load bowtie2/2.3.4.2-foss-2018b
 bowtie2 -q -p $nb_cores -x $Genome -U $file | samtools view -bSu - | samtools sort - ${DIR_output}/${fname}; 
 samtools index ${DIR_output}/${fname}.bam;
 
@@ -173,7 +172,6 @@ samtools view -bSu - | \
 samtools sort - ${DIR_output}/${fname};
 
 #samtools index -c ${DIR_output}/${fname}.bam;
-
 
 EOF
 	    cat $script
