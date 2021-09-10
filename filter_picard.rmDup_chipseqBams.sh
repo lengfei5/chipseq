@@ -15,7 +15,7 @@ while getopts ":hD:" opts; do
 	    echo 'lastest version employed samtools again, becasue PICARD does not work for axolotl genome'
 	    echo "Usage:"
 	    echo "$0 (input in alignments/BAMs_All)"
-            echo "$0 -D out/merged_bams
+            echo "$0 -D out/merged_bams"
 	    exit 0
 	    ;;
 	"D")
@@ -51,7 +51,7 @@ else
     # check if there are bam files in the directory or not
     if [ `ls -l $DIR_input/*.bam|wc -l` == "1" ]; then
         echo "no bam Found !!! "
-        echo " wrong directory or no bams in there "
+        echo "wrong directory or no bams in there "
         exit 1;
     fi
 fi
@@ -87,11 +87,11 @@ do
     newbb=$DIR_rmdup_uniq/${ff}_uniq_rmdup
     stat=${DIR_stat}/${ff}_stat.txt
     insertion_size=${DIR_insertion}/${ff}_insertion.size
+    picardDup_QC=${DIR_stat}/${ff}_picardDup.qc.txt
     
     #echo $newb 
     #echo $newbb 
     #echo $stat
-    #picardDup_QC=${DIR_stat}/${ff}_picardDup.qc.txt
     
     # creat the script for each sample
     script=$DIR_logs/${fname}_${jobName}.sh
