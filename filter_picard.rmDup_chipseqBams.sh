@@ -7,19 +7,19 @@
 # > samtools/1.10-foss-2018b in which the samtools index works
 # 
 #########################################
-while getopts ":hp" opts; do
+while getopts ":hD:" opts; do
     case "$opts" in
         "h")
 	    echo "script to filter low quality mapped reads, remove duplicates for bams files for chip-seq or alike data (e.g. atac-seq)"
             echo "old version used samtools to remove duplicates; and the current version is using PICARD"
 	    echo 'lastest version employed samtools again, becasue PICARD does not work for axolotl genome'
 	    echo "Usage:"
-	    echo "$0 (single_end bam)"
-            echo "$0 -p (paired_end bam)"
+	    echo "$0 (input in alignments/BAMs_All)"
+            echo "$0 -D out/merged_bams
 	    exit 0
 	    ;;
-	"p")
-	    PAIRED="TRUE"
+	"D")
+	    DIR_input="$OPTARG"
 	    ;;
 	"?")
             echo "Unknown option $opts"
@@ -35,7 +35,27 @@ nb_cores=8
 #blacklist="/groups/bell/jiwang/Genomes/C_elegans/ce10/ce10_blacklist/ce10-blacklist.bed" 
 MAPQ_cutoff=30
 
-DIR_input="${PWD}/alignments/BAMs_All"
+if [ -z "$DIR_bams" ]; then
+    DIR_input="${PWD}/alignments/BAMs_All"
+    echo "bam directory is $DIR_input"
+
+else
+    # check if provided directory ends with slash
+    if [[ $DIR_input == */ ]]; then
+        echo "parsing bam directory "
+        DIR_bams=${DIR_input%/}
+
+    fi
+
+    echo "bam directory is $DIR_input"
+    # check if there are bam files in the directory or not
+    if [ `ls -l $DIR_input/*.bam|wc -l` == "1" ]; then
+        echo "no bam Found !!! "
+        echo " wrong directory or no bams in there "
+        exit 1;
+    fi
+fi
+
 
 DIR_rmdup="${PWD}/alignments/BAMs_uniq"
 DIR_rmdup_uniq="${PWD}/alignments/BAMs_uniq_rmdup"
