@@ -35,7 +35,7 @@ nb_cores=8
 #blacklist="/groups/bell/jiwang/Genomes/C_elegans/ce10/ce10_blacklist/ce10-blacklist.bed" 
 MAPQ_cutoff=30
 
-if [ -z "$DIR_bams" ]; then
+if [ -z "$DIR_input" ]; then
     DIR_input="${PWD}/alignments/BAMs_All"
     echo "bam directory is $DIR_input"
 
@@ -43,7 +43,7 @@ else
     # check if provided directory ends with slash
     if [[ $DIR_input == */ ]]; then
         echo "parsing bam directory "
-        DIR_bams=${DIR_input%/}
+        DIR_input=${DIR_input%/}
 
     fi
 
@@ -132,7 +132,10 @@ fi;
 if [ ! -e $newbb.bam.bai ]; then
    samtools sort -@ $nb_cores -o ${newbb}.bam ${newbb}.unsorted.bam
    samtools index -c -m 14 $newbb.bam;
+   rm ${newbb}.unsorted.bam
+
 fi;
+
 
 echo 'done duplication removal...'
 
@@ -150,7 +153,7 @@ samtools stat -@ $nb_cores ${newbb}.bam | grep ^IS | cut -f 2- > ${insertion_siz
 
 EOF
     
-    cat $script
+    #cat $script
     sbatch $script
     #break;
     
