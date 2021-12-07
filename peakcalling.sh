@@ -170,7 +170,7 @@ EOF
        
 	else # without input
 	    cat <<EOF >> $script
-macs2 callpeak -t $sample -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200
+macs2 callpeak -t $sample -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200
 EOF
     
 	fi
@@ -179,7 +179,7 @@ EOF
     
 
     cat $script
-    #sbatch $script
+    sbatch $script
     
     cd $cwd #back to the main working directory
     
