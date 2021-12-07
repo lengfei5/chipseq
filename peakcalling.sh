@@ -76,13 +76,18 @@ fi
 
 if [ "$genome" == "hg19" ]; then
     species_macs="hs";
-    species_sicer="hg19";
+    
 fi
 
 if [ "$genome" == "ce11" ]; then
     species_macs="ce";
-    species_sicer="ce11";
+    
 fi
+
+if [ "$genome" == "am6" ]; then
+    species_macs=30000000000;
+fi
+
 
 pval=0.00001; # for macs sharp
 fdr=0.05; # for macs broad and sicer
@@ -121,7 +126,7 @@ for sample in ${DIR_Bams}/*.bam; do
 #!/usr/bin/bash
 
 #SBATCH --cpus-per-task=$nb_cores
-#SBATCH --time=480
+#SBATCH --time=240
 #SBATCH --mem=16G
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
@@ -165,7 +170,7 @@ EOF
        
 	else # without input
 	    cat <<EOF >> $script
-macs2 callpeak -t $sample -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200
+macs2 callpeak -t $sample -n ${out}_macs2_broad_fdr_${fdr} -f BAM -g -g $species_macs --broad --broad-cutoff $fdr --fix-bimodal --extsize 200
 EOF
     
 	fi
@@ -174,11 +179,11 @@ EOF
     
 
     cat $script
-    sbatch $script
+    #sbatch $script
     
     cd $cwd #back to the main working directory
     
-    #break;
+    break;
     
 done 
 
