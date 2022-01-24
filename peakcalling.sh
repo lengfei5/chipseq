@@ -183,7 +183,7 @@ EOF
     
     cd $cwd #back to the main working directory
     
-    break;
+    #break;
     
 done 
 
