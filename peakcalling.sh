@@ -150,7 +150,7 @@ EOF
 	# without input
 	elif [ "$genome" == "am6" ]; then # axololt
 	    cat <<EOF >> $script
-	    macs2 callpeak -t $sample -n ${out}_macs2 -f BAMPE -g 30000000000 -p 0.001 	    
+	    macs2 callpeak -t $sample -n ${out}_macs2 -f BAMPE -g 20000000000 -p 0.001 	    
 EOF
 
 	else 
