@@ -71,7 +71,8 @@ fi
 
 if [ "$genome" == "mm10" ]; then
     species_macs="mm"
-    chromSize="/groups/bell/jiwang/Genomes/Mouse/mm10_UCSC/Sequence/mm10_chrom_sizes.sizes"
+    chromSize="/groups/tanaka/People/current/jiwang/Genomes/mouse/mm10_UCSC/Sequence/mm10_chrom_sizes.sizes"
+    
 fi
 
 if [ "$genome" == "hg19" ]; then
